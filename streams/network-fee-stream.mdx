@@ -1,0 +1,160 @@
+---
+title: "BlockRazor Network Fee Stream: Real-Time Gas & Fee Data"
+sidebarTitle: "Network Fee Stream"
+description: "Real-time gas prices, priority fees, and validator tips from recent blocks on BSC and Solana — calibrate transaction costs with live network fee data."
+---
+
+BlockRazor Network Fee Stream delivers real-time gas price, priority fee, and validator tip data computed from recent historical block activity on supported chains. Rather than guessing at appropriate fee levels or querying slow RPC endpoints under load, your application receives a continuous push of current fee market conditions — enabling precise transaction cost calibration, faster inclusion, and reduced overpayment. Network Fee Stream is available for BSC and Solana.
+
+<Tabs>
+  <Tab title="BSC">
+    BlockRazor's BSC Network Fee Stream includes three distinct feeds: **GetGasPriceStream** for the current single gas price, **GetAllGasPriceStream** for a full distribution of gas prices observed in recent blocks, and the **Sandwich Detector** for identifying sandwich attack patterns in the mempool that may affect your fee strategy.
+
+    <CardGroup cols={3}>
+      <Card title="GetGasPriceStream" icon="gas-pump">
+        Real-time current gas price derived from recent BSC blocks. Use this for simple, single-value fee estimation.
+      </Card>
+      <Card title="GetAllGasPriceStream" icon="chart-bar">
+        Full gas price distribution from recent blocks, giving you percentile-level visibility into the fee market.
+      </Card>
+      <Card title="Sandwich Detector" icon="shield-halved">
+        Detects active sandwich attack patterns in the mempool so you can adjust fees or timing to avoid front-running.
+      </Card>
+    </CardGroup>
+
+    **Pricing:** $500 / month for all BSC fee stream services.
+
+    **Subscribing to GetGasPriceStream (gRPC)**
+
+    The following Go example demonstrates connecting to the BSC GetGasPriceStream endpoint over gRPC:
+
+    ```go
+    package main
+
+    import (
+        "context"
+        "fmt"
+        "log"
+
+        "google.golang.org/grpc"
+        "google.golang.org/grpc/credentials"
+        "google.golang.org/grpc/metadata"
+    )
+
+    func main() {
+        conn, err := grpc.Dial(
+            "fees.blockrazor.io:443",
+            grpc.WithTransportCredentials(credentials.NewTLS(nil)),
+        )
+        if err != nil {
+            log.Fatalf("Failed to connect: %v", err)
+        }
+        defer conn.Close()
+
+        ctx := metadata.AppendToOutgoingContext(
+            context.Background(),
+            "authorization", "Bearer YOUR_AUTH_TOKEN",
+        )
+
+        stream, err := client.GetGasPriceStream(ctx, &GasPriceStreamRequest{
+            Chain: "bsc",
+        })
+        if err != nil {
+            log.Fatalf("Failed to start stream: %v", err)
+        }
+
+        for {
+            resp, err := stream.Recv()
+            if err != nil {
+                log.Fatalf("Stream error: %v", err)
+            }
+            fmt.Printf("Current BSC gas price: %s Gwei\n", resp.GasPrice)
+        }
+    }
+    ```
+
+    <Tip>
+      Use **GetAllGasPriceStream** when your strategy needs to select a percentile-based fee (e.g., 75th percentile for fast inclusion without overpaying) rather than relying on a single average value.
+    </Tip>
+
+    <Note>
+      The Sandwich Detector analyses mempool transaction ordering in real time. When a sandwich pattern is detected, your application can respond by increasing the tip, splitting transactions, or delaying submission until the attack window closes.
+    </Note>
+
+    For full API details, see the [BSC Network Fee Stream API Reference](/api-reference/streams/network-fee-stream-bsc).
+  </Tab>
+
+  <Tab title="Solana">
+    BlockRazor's Solana Network Fee Stream provides the **GetTransactionFee** endpoint, which streams current priority fee and validator tip data derived from recent Solana blocks. Solana's fee market is driven by per-instruction compute unit pricing and optional tip payments to validators — this stream gives your application live visibility into both.
+
+    <CardGroup cols={2}>
+      <Card title="GetTransactionFee" icon="coins">
+        Real-time priority fee and tip data based on recent Solana block history. Includes compute unit price percentiles and current tip levels.
+      </Card>
+      <Card title="Pricing" icon="tag">
+        $300 / month
+      </Card>
+    </CardGroup>
+
+    **Subscribing to GetTransactionFee (WebSocket)**
+
+    The following JavaScript example subscribes to the Solana fee stream over WebSocket:
+
+    ```javascript
+    const ws = new WebSocket(
+      'wss://fees.blockrazor.io/solana?auth=YOUR_AUTH_TOKEN'
+    );
+
+    ws.on('open', () => {
+      console.log('Connected to Solana Network Fee Stream');
+      ws.send(JSON.stringify({ method: 'GetTransactionFee' }));
+    });
+
+    ws.on('message', (data) => {
+      const fee = JSON.parse(data);
+      console.log('Priority fee (micro-lamports/CU):', fee.priorityFee);
+      console.log('Recommended tip (lamports):', fee.tip);
+    });
+
+    ws.on('error', (err) => {
+      console.error('WebSocket error:', err);
+    });
+    ```
+
+    <Info>
+      Solana's fee market is highly dynamic — priority fees can spike dramatically during periods of high congestion. Subscribing to GetTransactionFee ensures your transactions are always priced competitively without manual intervention.
+    </Info>
+
+    For full API details, see the [Solana Network Fee Stream API Reference](/api-reference/streams/network-fee-stream-solana).
+  </Tab>
+</Tabs>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Dynamic Fee Calibration" icon="sliders">
+    Continuously adjust your transaction fees based on live fee market data to achieve the optimal balance between inclusion speed and cost efficiency.
+  </Card>
+  <Card title="MEV Strategy Optimization" icon="bolt">
+    Feed real-time gas price distributions into your backrunning or arbitrage logic to set bids precisely enough to win block inclusion without unnecessary overpayment.
+  </Card>
+  <Card title="Sandwich Attack Avoidance" icon="shield">
+    Use the BSC Sandwich Detector to identify when your transaction is at risk of being sandwiched and adjust submission timing or fee parameters accordingly.
+  </Card>
+  <Card title="Cost Analytics & Reporting" icon="chart-line">
+    Record a historical stream of gas prices and tip levels to analyze fee market trends, benchmark your execution costs, and optimize long-term strategy parameters.
+  </Card>
+</CardGroup>
+
+## Stream Summary
+
+| Chain | Stream | Description | Pricing |
+|---|---|---|---|
+| BSC | GetGasPriceStream | Current single gas price from recent blocks | $500/month |
+| BSC | GetAllGasPriceStream | Full gas price distribution from recent blocks | $500/month |
+| BSC | Sandwich Detector | Real-time sandwich attack pattern detection | $500/month |
+| Solana | GetTransactionFee | Priority fee and tip data from recent blocks | $300/month |
+
+<Note>
+  The BSC $500/month subscription covers all three BSC fee streams — GetGasPriceStream, GetAllGasPriceStream, and the Sandwich Detector — under a single plan.
+</Note>

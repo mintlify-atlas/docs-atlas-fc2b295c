@@ -1,0 +1,128 @@
+---
+title: "BlockRazor Mempool Streams: Real-Time Pending Tx Data"
+sidebarTitle: "Mempool"
+description: "Low-latency pending transaction streams from the public mempool or BlockRazor's private RPC orderflow — built for MEV searchers and trading bots."
+---
+
+BlockRazor Mempool Streams deliver real-time pushes of pending transactions with ultra-low latency, giving trading bots, MEV searchers, and on-chain analysts a first-mover advantage before transactions are confirmed. Whether you need broad public mempool coverage or exclusive access to BlockRazor's private RPC orderflow, Mempool Streams integrate directly into your strategy pipeline via WebSocket with minimal setup.
+
+<Tabs>
+  <Tab title="Public Mempool">
+    The Public Mempool stream subscribes you to pending transactions broadcast across the high-performance BlockRazor network. Every transaction that enters the public mempool is pushed to your WebSocket connection in real time, allowing you to observe pending activity across the entire network before any block is produced.
+
+    <CardGroup cols={2}>
+      <Card title="Network" icon="globe">
+        BSC (BNB Smart Chain)
+      </Card>
+      <Card title="Pricing" icon="tag">
+        $300 / stream / month
+      </Card>
+    </CardGroup>
+
+    <Note>
+      Public Mempool streams include all pending transactions seen by BlockRazor's high-performance nodes. Transaction ordering and inclusion are not guaranteed — this stream is designed for observation and signal detection.
+    </Note>
+
+    **Connecting to the Public Mempool Stream**
+
+    Establish a WebSocket connection using your auth token. Each message contains a JSON-encoded pending transaction object.
+
+    ```javascript
+    const ws = new WebSocket('wss://mempool.blockrazor.io/bsc?auth=YOUR_AUTH_TOKEN');
+
+    ws.on('open', () => {
+      console.log('Connected to BlockRazor Public Mempool');
+    });
+
+    ws.on('message', (data) => {
+      const tx = JSON.parse(data);
+      console.log('Pending tx:', tx.hash);
+    });
+
+    ws.on('error', (err) => {
+      console.error('WebSocket error:', err);
+    });
+    ```
+
+    **Tx Trace**
+
+    Alongside raw pending transaction data, BlockRazor provides **Tx Trace** — a tool that monitors the propagation path of each transaction through the network and reports cross-regional latency distribution. This lets you understand exactly how quickly a transaction spreads from its origin node to validators across different geographic regions.
+
+    <Tip>
+      Tx Trace is included in the BSC Package subscription. Use it to benchmark your infrastructure latency against other market participants.
+    </Tip>
+
+    For full API details, see the [Public Mempool API Reference](/api-reference/streams/mempool-public).
+  </Tab>
+
+  <Tab title="Private Mempool">
+    The Private Mempool stream gives you exclusive access to BlockRazor's RPC orderflow data — transactions submitted directly through BlockRazor's RPC endpoints before they are ever broadcast to the public mempool. This proprietary feed is significantly earlier than anything available from public sources.
+
+    <CardGroup cols={2}>
+      <Card title="Networks" icon="globe">
+        BSC and Ethereum
+      </Card>
+      <Card title="Pricing" icon="tag">
+        $1,000 / month
+      </Card>
+    </CardGroup>
+
+    <Info>
+      Private Mempool data originates from real user transaction submissions routed through BlockRazor's RPC. This orderflow is not shared publicly, making it a highly exclusive signal source for competitive MEV strategies.
+    </Info>
+
+    **Connecting to the Private Mempool Stream**
+
+    The Private Mempool stream uses the same WebSocket interface. Authenticate using your assigned token, and specify the chain in the URL path.
+
+    ```javascript
+    // BSC Private Mempool
+    const ws = new WebSocket('wss://mempool.blockrazor.io/bsc/private?auth=YOUR_AUTH_TOKEN');
+
+    ws.on('open', () => {
+      console.log('Connected to BlockRazor Private Mempool');
+    });
+
+    ws.on('message', (data) => {
+      const tx = JSON.parse(data);
+      console.log('Private orderflow tx:', tx.hash);
+    });
+
+    ws.on('error', (err) => {
+      console.error('WebSocket error:', err);
+    });
+    ```
+
+    For full API details, see the [Private Mempool API Reference](/api-reference/streams/mempool-private).
+  </Tab>
+</Tabs>
+
+## Use Cases
+
+Mempool Streams power a wide range of real-time on-chain strategies. The following are the most common applications:
+
+<CardGroup cols={3}>
+  <Card title="Backrunning" icon="bolt">
+    Detect large swaps or liquidations in the mempool and place a follow-up transaction immediately after to capture price impact or arbitrage opportunities.
+  </Card>
+  <Card title="Copy Trading" icon="copy">
+    Monitor wallets of interest and replicate their pending transactions in real time, entering positions simultaneously or ahead of confirmation.
+  </Card>
+  <Card title="Token Sniping" icon="crosshairs">
+    Watch for liquidity addition events or token launch transactions and execute buy orders within milliseconds of detection.
+  </Card>
+</CardGroup>
+
+## Choosing the Right Stream
+
+| Feature | Public Mempool | Private Mempool |
+|---|---|---|
+| Data source | Public broadcast network | BlockRazor RPC orderflow |
+| Supported chains | BSC | BSC, Ethereum |
+| Latency advantage | High | Very High |
+| Price | $300/stream/month | $1,000/month |
+| Tx Trace included | Yes (BSC Package) | — |
+
+<Info>
+  Both stream types can be combined with BlockRazor's Bundle submission to act on detected signals within the same block. See the Bundle documentation for details.
+</Info>

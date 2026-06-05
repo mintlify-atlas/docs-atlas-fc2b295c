@@ -1,0 +1,128 @@
+---
+title: "Gas Sponsor: Gasless Transactions for Your Users"
+sidebarTitle: "Gas Sponsor"
+description: "BlockRazor covers native gas fees on behalf of users, removing the token barrier for onboarding and enabling seamless Web3 trading experiences."
+---
+
+Gas Sponsor is a BlockRazor service that removes one of the most common friction points in Web3: requiring users to hold native tokens before they can do anything on-chain. With Gas Sponsor enabled, BlockRazor pays the gas fee for your users' transactions directly — your users interact with the blockchain without needing BNB, ETH, or SOL in their wallets. This dramatically improves onboarding conversion rates and creates a smoother trading experience for new users arriving from Web2 backgrounds.
+
+## Why Gas Sponsorship Matters
+
+<CardGroup cols={2}>
+  <Card title="Remove the Onboarding Barrier" icon="door-open">
+    New users often abandon Web3 apps when prompted to acquire native tokens just to pay gas. Gas Sponsor eliminates this step entirely.
+  </Card>
+  <Card title="Improve Trading UX" icon="chart-line">
+    DEXs and trading bots can abstract gas costs away from users, letting them focus on execution rather than fee management.
+  </Card>
+  <Card title="Wallet Integration" icon="wallet">
+    Wallets can sponsor the first N transactions for new accounts, creating a frictionless activation experience.
+  </Card>
+  <Card title="Flexible Cost Model" icon="coins">
+    You control which transactions are sponsored and under what conditions, keeping your sponsorship budget predictable.
+  </Card>
+</CardGroup>
+
+## Supported Chains
+
+<CardGroup cols={3}>
+  <Card title="Solana" icon="s">
+    Sponsor SOL fees for transactions on the Solana network.
+  </Card>
+  <Card title="BSC" icon="circle-b">
+    Sponsor BNB gas fees for transactions on BNB Smart Chain.
+  </Card>
+  <Card title="Ethereum" icon="gem">
+    Sponsor ETH gas fees for transactions on the Ethereum mainnet.
+  </Card>
+</CardGroup>
+
+## Integration Flow
+
+<Steps>
+  <Step title="Authenticate and request sponsorship">
+    Your backend calls the BlockRazor Gas Sponsor API with your auth token and the unsigned transaction details. BlockRazor evaluates the request and returns a sponsorship commitment.
+
+    ```bash
+    curl -X POST https://api.blockrazor.io/gas-sponsor/request \
+      -H 'Content-Type: application/json' \
+      -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+      -d '{
+        "chain": "bsc",
+        "from": "0xUSER_WALLET_ADDRESS",
+        "to": "0xCONTRACT_ADDRESS",
+        "data": "0xCALLDATA",
+        "value": "0x0"
+      }'
+    ```
+
+    ```json
+    {
+      "sponsorshipId": "spo_a1b2c3d4e5f6",
+      "expiresAt": 1718000000,
+      "sponsoredGasLimit": "0x5208",
+      "paymaster": "0xBLOCKRAZOR_PAYMASTER_ADDRESS"
+    }
+    ```
+  </Step>
+
+  <Step title="Submit the sponsored transaction">
+    Sign the transaction on the client side (the user's wallet signs only the transaction payload — not the gas fee). Include the `sponsorshipId` returned in step 1 so BlockRazor can match the fee payment to the correct transaction.
+
+    ```bash
+    curl -X POST https://api.blockrazor.io/gas-sponsor/submit \
+      -H 'Content-Type: application/json' \
+      -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+      -d '{
+        "sponsorshipId": "spo_a1b2c3d4e5f6",
+        "signedTransaction": "0xSIGNED_TX_HEX"
+      }'
+    ```
+
+    ```json
+    {
+      "txHash": "0xABC123...",
+      "status": "submitted"
+    }
+    ```
+  </Step>
+
+  <Step title="BlockRazor pays the fee and broadcasts the transaction">
+    BlockRazor's paymaster contract or fee account covers the native gas cost and submits the transaction to the network. The transaction appears on-chain exactly as the user intended — with BlockRazor's address paying the fee in the background.
+
+    ```json
+    {
+      "txHash": "0xABC123...",
+      "blockNumber": 38472910,
+      "gasUsed": "0x5208",
+      "gasSponsor": "0xBLOCKRAZOR_PAYMASTER_ADDRESS",
+      "status": "confirmed"
+    }
+    ```
+  </Step>
+</Steps>
+
+## Key Concepts
+
+<CardGroup cols={2}>
+  <Card title="Sponsorship ID" icon="fingerprint">
+    A unique token returned when you request sponsorship. It ties the fee commitment to a specific transaction, preventing replay attacks.
+  </Card>
+  <Card title="Expiry Window" icon="clock">
+    Sponsorship commitments expire after a short window. Submit the signed transaction before `expiresAt` to ensure the sponsorship is valid.
+  </Card>
+  <Card title="Paymaster Address" icon="building-columns">
+    BlockRazor's on-chain paymaster address that actually sends the gas fee. You can verify it on-chain after the transaction confirms.
+  </Card>
+  <Card title="Sponsorship Scope" icon="filter">
+    You can restrict sponsorship to specific contract addresses, method selectors, or user segments using your account's sponsorship policy settings.
+  </Card>
+</CardGroup>
+
+<Info>
+  Gas Sponsor is available to all registered BlockRazor users. Check the [Pricing](https://blockrazor.io/#/pricing) page for sponsorship volume limits and costs associated with your plan.
+</Info>
+
+<Tip>
+  Need an auth token to get started? Follow the [Authentication](/authentication) guide to create your BlockRazor account and generate credentials.
+</Tip>

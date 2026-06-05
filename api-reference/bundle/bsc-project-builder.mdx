@@ -1,0 +1,107 @@
+---
+title: "BSC Bundle API for Project Builders — eth_sendMevBundle"
+sidebarTitle: "BSC Project Builder"
+description: "Submit MEV bundles on BSC as a project builder to execute transactions atomically within the same block as a signal transaction."
+---
+
+Project builders on BSC can use the `eth_sendMevBundle` method to submit a group of signed transactions that execute atomically within the same block as a designated signal transaction. This is the foundational tool for use cases such as backrunning, copy trading, and token sniping—where precise co-block execution with a known on-chain event is required. Bundles are routed through BlockRazor's high-performance infrastructure and delivered directly to block builders for inclusion.
+
+<Info>
+  The Bundle service is available to all new registered users on BSC with no rate limits. See [Pricing](https://blockrazor.io/#/pricing) for subscription details on advanced features.
+</Info>
+
+## Endpoint
+
+```
+POST https://bundle.blockrazor.io/bsc
+```
+
+Authentication is performed via a Bearer token passed in the `Authorization` header.
+
+## Request
+
+The request follows the standard JSON-RPC 2.0 envelope. The single element of `params` is a bundle object with the fields described below.
+
+### Bundle Parameters
+
+<ParamField body="txs" type="string[]" required>
+  An ordered array of signed raw transactions encoded as hex strings (each prefixed with `0x`). Transactions in the bundle execute sequentially and atomically; if any transaction reverts, the entire bundle is discarded unless explicitly handled.
+</ParamField>
+
+<ParamField body="blockNumber" type="string" required>
+  The target block number for bundle inclusion, expressed as a hex string (e.g., `"0xE4E1C0"`). The bundle is only eligible for inclusion in exactly this block and is discarded afterward.
+</ParamField>
+
+<ParamField body="signalTx" type="string" required>
+  The transaction hash of the signal transaction that this bundle should follow within the same block. The bundle will be placed immediately after the signal transaction in the block's transaction ordering, enabling precise co-block execution.
+</ParamField>
+
+## Code Examples
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://bundle.blockrazor.io/bsc \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_sendMevBundle",
+    "params": [
+      {
+        "txs": ["0xTX1", "0xTX2"],
+        "blockNumber": "0xE4E1C0",
+        "signalTx": "0xSIGNAL_TX_HASH"
+      }
+    ],
+    "id": 1
+  }'
+```
+
+```json JSON-RPC Request
+{
+  "jsonrpc": "2.0",
+  "method": "eth_sendMevBundle",
+  "params": [
+    {
+      "txs": [
+        "0xSIGNED_RAW_TX_1",
+        "0xSIGNED_RAW_TX_2"
+      ],
+      "blockNumber": "0xE4E1C0",
+      "signalTx": "0xSIGNAL_TX_HASH"
+    }
+  ],
+  "id": 1
+}
+```
+</CodeGroup>
+
+## Response
+
+A successful submission returns a JSON-RPC response containing the `bundleHash` — a unique identifier for the submitted bundle that can be used for tracing and status lookups.
+
+<ResponseField name="bundleHash" type="string">
+  The hash of the submitted bundle. Use this value with the Block Builder's tracing endpoints to monitor bundle status and execution results.
+</ResponseField>
+
+```json Response Example
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "bundleHash": "0xabc123def456..."
+  }
+}
+```
+
+## How It Works
+
+When a project builder submits a bundle via `eth_sendMevBundle`, BlockRazor routes the bundle to its block-building infrastructure. The `signalTx` field instructs the block builder to position the bundle's transactions immediately after the specified signal transaction within the target block. This co-block ordering guarantee is what distinguishes the Bundle service from standard transaction submission and makes it suitable for time-sensitive MEV strategies.
+
+<Note>
+  The bundle is only valid for the exact `blockNumber` specified. If the target block has already been produced at the time of submission, the bundle will be rejected. Ensure your system monitors the current chain head and submits bundles with low latency.
+</Note>
+
+<Tip>
+  Use BlockRazor's Mempool Stream to detect signal transactions in real time before they are confirmed, giving your system enough lead time to construct and submit a bundle before the target block is sealed.
+</Tip>

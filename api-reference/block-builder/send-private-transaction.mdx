@@ -1,0 +1,116 @@
+---
+title: "Send Private Transaction to BSC Block Builder"
+sidebarTitle: "Private Transaction"
+description: "Submit a single signed transaction privately to BlockRazor's BSC Block Builder using eth_sendPrivateTransaction, bypassing the public mempool."
+---
+
+The `eth_sendPrivateTransaction` method submits a single signed transaction directly to BlockRazor's BSC Block Builder without broadcasting it to the public mempool. This protects your transaction from front-running and sandwich attacks by keeping it invisible to other network participants until it is confirmed in a block. Private transactions are routed through BlockRazor's low-latency validator communication infrastructure, giving them a competitive path to inclusion while maintaining confidentiality.
+
+<Info>
+  `eth_sendPrivateTransaction` is free for all new registered users on BSC with no rate limits. No subscription is required. See [Pricing](https://blockrazor.io/#/pricing) for details on the BSC Package and premium builder features.
+</Info>
+
+## Endpoint
+
+```
+POST https://builder.blockrazor.io/bsc
+```
+
+Authentication is performed via a Bearer token passed in the `Authorization` header.
+
+## How Private Transactions Work
+
+When you submit a transaction via `eth_sendPrivateTransaction`, it is held exclusively within BlockRazor's Block Builder infrastructure. It is never forwarded to the public BSC peer-to-peer network. The transaction remains private until BlockRazor's Block Builder produces a block that includes it. If the transaction is not included by the `maxBlockNumber` block, it is silently dropped with no on-chain footprint.
+
+This makes private transactions ideal for:
+- **MEV-sensitive trades** — Prevent sandwich bots from detecting and sandwiching large swaps.
+- **Token launches and sniping** — Execute at a precise block without exposing intent.
+- **Arbitrage** — Submit profitable arbitrage without revealing the opportunity to competitors.
+
+## Request
+
+The request follows the standard JSON-RPC 2.0 envelope. The single element of `params` is a private transaction object.
+
+### Transaction Parameters
+
+<ParamField body="tx" type="string" required>
+  The signed raw transaction encoded as a hex string prefixed with `0x`. This is the same format produced by `eth_signTransaction` or any standard wallet signing library.
+</ParamField>
+
+<ParamField body="maxBlockNumber" type="string">
+  Optional. The maximum block number (as a hex string, e.g., `"0xE4E1C5"`) up to and including which the transaction is eligible for inclusion. If the transaction has not been included by this block, it expires automatically. Omitting this field allows the transaction to remain active for the builder's default expiry window.
+</ParamField>
+
+## Code Examples
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://builder.blockrazor.io/bsc \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_sendPrivateTransaction",
+    "params": [
+      {
+        "tx": "0xSIGNED_RAW_TRANSACTION_HEX",
+        "maxBlockNumber": "0xE4E1C5"
+      }
+    ],
+    "id": 1
+  }'
+```
+
+```json JSON-RPC Request
+{
+  "jsonrpc": "2.0",
+  "method": "eth_sendPrivateTransaction",
+  "params": [
+    {
+      "tx": "0xSIGNED_RAW_TRANSACTION_HEX",
+      "maxBlockNumber": "0xE4E1C5"
+    }
+  ],
+  "id": 1
+}
+```
+
+```json Minimal Request (Required Fields Only)
+{
+  "jsonrpc": "2.0",
+  "method": "eth_sendPrivateTransaction",
+  "params": [
+    {
+      "tx": "0xSIGNED_RAW_TRANSACTION_HEX"
+    }
+  ],
+  "id": 1
+}
+```
+</CodeGroup>
+
+## Response
+
+A successful submission returns the `transactionHash` of the private transaction. You can use this hash to poll for on-chain confirmation once you expect the transaction to have been included.
+
+<ResponseField name="transactionHash" type="string">
+  The hash of the submitted transaction. Monitor this hash using standard `eth_getTransactionReceipt` calls against a BSC RPC node to detect when the transaction has been confirmed on-chain.
+</ResponseField>
+
+```json Response Example
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": "0x4e3f2a1b9c8d..."
+}
+```
+
+## Privacy Guarantees
+
+<Note>
+  Private transactions are never broadcast to the public mempool. They are only visible on-chain after being included in a block produced by BlockRazor's Block Builder. If the Block Builder does not produce the target block, the transaction will not appear on-chain for that block—your transaction remains confidential.
+</Note>
+
+<Tip>
+  Set `maxBlockNumber` to a value a few blocks beyond your target to give the builder multiple opportunities for inclusion without leaving your transaction active indefinitely. For highly time-sensitive strategies, set a tight `maxBlockNumber` to ensure the transaction expires cleanly if conditions change.
+</Tip>

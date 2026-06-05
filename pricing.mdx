@@ -1,0 +1,144 @@
+---
+title: "BlockRazor Pricing: Subscriptions, Packages, and Free Tier"
+sidebarTitle: "Pricing"
+description: "Explore BlockRazor's fully upgraded pricing model — per-chain subscriptions, the BSC bundle package, multi-month discounts, and the free tier for new registered users."
+---
+
+BlockRazor's pricing system has been fully upgraded to give users precise control over what they pay for. The original multi-chain, multi-tier system has been split into independent per-chain, per-service subscriptions — lowering the entry threshold while making it easy to build a stack that matches your exact needs. Services can be purchased individually or bundled together at a reduced rate.
+
+<Info>
+  New registered users can access multi-mode transaction sending services on Solana, BSC, Ethereum, and Base at zero cost. See the [New Registered Users](#new-registered-users) section for details on included methods and rate limits.
+</Info>
+
+---
+
+## Subscription Service
+
+### Personalized
+
+Users can freely combine and purchase services across chains. Stream-type services support configuring quantities or traffic package specifications and also support daily purchases. Visit the [BlockRazor Pricing page](https://blockrazor.io/#/pricing) to configure and purchase.
+
+<Tabs>
+  <Tab title="BSC">
+    | Service | Description | Price |
+    |---|---|---|
+    | Fast-Tx | Propagating transactions and transaction batches using high-performance networks | $500 / month |
+    | Public Mempool | Subscribe to high-performance network transaction data | $300 / stream / month |
+    | Private Mempool | Subscribe to BlockRazor RPC orderflow stream data | $1,000 / month |
+    | Block Stream | Subscribe to high-performance network block data | $500 / stream / month |
+    | Node Stream | Low-latency synchronized world state | $800 / enode / month |
+    | Network Fee Stream | Obtain BSC gas price data | $500 / month |
+    | Bundle Tracing & Explorer | Tracing and explore bundles of Block Builder | $1,500 / month |
+  </Tab>
+  <Tab title="Solana">
+    | Service | Description | Price |
+    |---|---|---|
+    | Shred Stream | Low-latency transmission of shreds | $500 / stream / month |
+    | Geyser Stream | Real-time transmission of on-chain data from Solana, including accounts, slots, blocks, and transactions | See tiers below |
+    | Network Fee Stream | Get Solana priority fee and tip data | $300 / month |
+
+    **Geyser Stream Traffic Tiers**
+
+    | Volume | Price |
+    |---|---|
+    | 5 TiB | $250 / month |
+    | 10 TiB | $500 / month |
+    | 50 TiB | $2,500 / month |
+    | 100 TiB | $4,750 / month |
+    | 150 TiB | $6,750 / month |
+    | 200 TiB | $8,500 / month |
+    | 250 TiB | $10,000 / month |
+  </Tab>
+  <Tab title="Base">
+    | Service | Description | Price |
+    |---|---|---|
+    | FlashBlock Stream | Low-latency acquisition of Base FlashBlock data | $250 / stream / month |
+    | Block Stream | Low-latency acquisition of Base Block data | $300 / stream / month |
+    | RPC-Send Tx | Low latency and high TPS for sending Base transactions on-chain | $1,000 / month |
+  </Tab>
+  <Tab title="General">
+    | Service | Description | Price |
+    |---|---|---|
+    | Dedicated Channel | Dedicated technical support | $1,000 / month |
+  </Tab>
+</Tabs>
+
+---
+
+### Package
+
+Rather than assembling individual services, users can purchase the BSC Package for a lower all-in price. The package consolidates the most commonly used BSC services into a single subscription.
+
+<Note>
+  The BSC Package is priced at **$1,250 / month** — a significant saving compared to purchasing the included services separately.
+</Note>
+
+| Service | Description |
+|---|---|
+| Public Mempool | Subscribe to high-performance network transaction data |
+| Block Stream | Subscribe to high-performance network block data |
+| Node Stream | Low-latency synchronized world state |
+| Call Bundle | Submit a request to Block Builder to receive bundle simulation results |
+| Fast Submit | Submit transactions to Block Builder with lower latency and higher stability |
+| Tx Trace | Monitoring transaction propagation paths and cross-regional latency distribution |
+
+---
+
+### Discounts
+
+Commit to a longer subscription period to unlock automatic discounts. Discounts apply to both individual service subscriptions and the BSC Package.
+
+| Subscription Period | Discount |
+|---|---|
+| 1 month | — |
+| 3 months | 5% off |
+| 6 months | 10% off |
+| 9 months | 15% off |
+| 12 months | 20% off |
+
+---
+
+## New Registered Users
+
+New registered users receive free access to multi-mode transaction sending services across Solana, BSC, Ethereum, and Base — no subscription required. The free tier covers four service modes, each with specific methods and rate limits.
+
+<Accordion title="RPC — Standard JSON-RPC Methods">
+  The RPC mode provides the chain-native `eth_sendRawTransaction` method and other standard JSON-RPC methods.
+
+  | Chain | Methods | Limit |
+  |---|---|---|
+  | BSC | `eth_sendRawTransaction`, other JSON RPC methods | — |
+  | Ethereum | `eth_sendRawTransaction`, other JSON RPC methods | — |
+  | Base | `eth_sendRawTransaction` | 1 tx / 5 seconds |
+</Accordion>
+
+<Accordion title="Fast — Global Acceleration Network">
+  Fast mode leverages BlockRazor's globally distributed acceleration network and highly staked validators to provide rapid on-chain transaction processing. In Fast mode, the tip must be forwarded to a designated address within the transaction itself.
+
+  | Chain | Methods | Limit |
+  |---|---|---|
+  | Solana | `Send Transaction`, `Send Transaction` v2 | Default 3 TPS |
+  | BSC | `eth_sendRawTransaction`, `eth_sendRawTransaction` v2 | Default 10 TPS |
+  | Base | `eth_sendRawTransaction` | Default 10 TPS |
+
+  <Note>
+    New registered users can also use `SendTx` — the no-tip variant within the Fast-Tx service — with a limit of 10 txs / 5 seconds and 10 txs / day.
+  </Note>
+</Accordion>
+
+<Accordion title="Bundle — MEV and Orderflow Auction">
+  Bundle mode allows project builders to send bundles and allows Searchers to send bids in the orderflow auction.
+
+  | Chain | Methods | Limit |
+  |---|---|---|
+  | BSC | `eth_sendMevBundle` (project builders), `eth_sendMevBundle` (Searcher) | — |
+  | Ethereum | `eth_sendBundle` (project builders), `eth_sendBid` (Searcher) | — |
+</Accordion>
+
+<Accordion title="Block Builder — BSC Block Building">
+  Block Builder is BlockRazor's BSC block building service. Based on global deployments and low-latency communication with validators, Block Builder runs various block building algorithms to achieve a high success rate in block production. New users can submit bundles and private transactions to Block Builder for free.
+
+  | Chain | Methods | Limit |
+  |---|---|---|
+  | BSC | `eth_sendBundle`, `eth_sendPrivateTransaction` | — |
+</Accordion>

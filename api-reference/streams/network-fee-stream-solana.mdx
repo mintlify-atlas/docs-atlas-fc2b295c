@@ -1,0 +1,177 @@
+---
+title: "Solana Network Fee Stream — Real-Time Priority Fees & Tips"
+sidebarTitle: "Solana Network Fee"
+description: "Stream real-time Solana priority fees and Jito tip recommendations via gRPC GetTransactionFee to optimize transaction landing rates for $300/month."
+---
+
+The Solana Network Fee Stream provides a continuous gRPC feed of real-time priority fee and tip data based on recent historical block observations on the Solana network. Instead of estimating fees from stale snapshots or hardcoding static values, your application receives pushed updates reflecting live fee market conditions — giving you the data you need to set a `ComputeBudget` priority fee and Jito tip that maximize your transaction's chances of landing in the next slot. The service uses the **GetTransactionFee** method and is priced at **$300 per month**.
+
+<Info>
+  Priority fees on Solana are set via the `SetComputeUnitPrice` instruction in the `ComputeBudget` program. Tips for Jito bundles are transferred to one of Jito's tip accounts. The fee stream provides both values so you can configure each independently based on current network conditions.
+</Info>
+
+## Connection Details
+
+| Property    | Value                               |
+| ----------- | ----------------------------------- |
+| Protocol    | gRPC                                |
+| gRPC host   | `grpc.blockrazor.io:443`            |
+| Method      | `GetTransactionFee`                 |
+| Pricing     | $300 / month                        |
+| Chain       | Solana                              |
+
+<Note>
+  Attach your BlockRazor auth token as a Bearer token in the `authorization` metadata header on your gRPC outgoing context. Token-based authentication is required for all connections.
+</Note>
+
+## Authentication
+
+Set up your gRPC metadata before opening the stream:
+
+```rust
+let mut metadata = tonic::metadata::MetadataMap::new();
+metadata.insert(
+    "authorization",
+    format!("Bearer {}", YOUR_AUTH_TOKEN).parse().unwrap(),
+);
+```
+
+## Code Example
+
+The example below uses the `tonic` gRPC client in Rust to connect to the fee stream and print priority fee recommendations as they arrive:
+
+```rust
+use tonic::{transport::Channel, Request};
+
+// Generated from BlockRazor's protobuf definition
+mod blockrazor {
+    tonic::include_proto!("blockrazor.fee");
+}
+
+use blockrazor::{
+    fee_service_client::FeeServiceClient,
+    TransactionFeeRequest,
+};
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // Connect to BlockRazor gRPC fee stream endpoint
+    let channel = Channel::from_static("https://grpc.blockrazor.io:443")
+        .tls_config(tonic::transport::ClientTlsConfig::new())?
+        .connect()
+        .await?;
+
+    let mut client = FeeServiceClient::new(channel);
+
+    // Attach auth token to the streaming request
+    let mut request = Request::new(TransactionFeeRequest {});
+    request.metadata_mut().insert(
+        "authorization",
+        format!("Bearer YOUR_AUTH_TOKEN").parse()?,
+    );
+
+    // Subscribe to GetTransactionFee — stream FeeResponse messages
+    let mut stream = client.get_transaction_fee(request).await?.into_inner();
+
+    println!("Streaming Solana fee recommendations...");
+
+    while let Some(fee_response) = stream.message().await? {
+        println!(
+            "priority_fee: {} micro-lamports  recommended_tip: {} lamports  ts: {}",
+            fee_response.priority_fee,
+            fee_response.recommended_tip,
+            fee_response.timestamp,
+        );
+
+        // Apply to your next transaction:
+        // set_compute_unit_price(fee_response.priority_fee)
+        // transfer tip to jito tip account: fee_response.recommended_tip lamports
+    }
+
+    Ok(())
+}
+```
+
+<Tip>
+  Cache the most recent `FeeResponse` locally and apply it to every transaction you build. Because fee conditions change per slot, always use the latest cached value rather than the value received at connection time.
+</Tip>
+
+## Response Fields
+
+Each message received from `GetTransactionFee` is a `FeeResponse` with the following fields:
+
+<ResponseField name="priorityFee" type="u64" required>
+  Recommended compute unit price to set via the `SetComputeUnitPrice` instruction, expressed in **micro-lamports per compute unit** (μL/CU). Add this to your transaction using the `ComputeBudget` program to increase priority relative to other transactions in the same slot.
+
+  Example: `5000` micro-lamports/CU means paying 0.005 lamports per compute unit consumed.
+</ResponseField>
+
+<ResponseField name="recommendedTip" type="u64" required>
+  Recommended Jito tip amount in **lamports** to transfer to one of Jito's eight tip accounts alongside your transaction. This tip is used by Jito block engines to prioritize your bundle for inclusion. Higher tips increase the likelihood of landing in the next slot during periods of contention.
+
+  Example: `100000` lamports = 0.0001 SOL tip.
+</ResponseField>
+
+<ResponseField name="timestamp" type="i64" required>
+  Unix timestamp (seconds) as a signed 64-bit integer representing when this fee observation was recorded. Use this to detect stale data — if the timestamp is more than a few seconds behind wall clock time, reconnect to ensure freshness.
+</ResponseField>
+
+## Applying Fee Data to Transactions
+
+Use the streamed values to configure two separate instructions in your Solana transaction:
+
+### 1. Set Compute Unit Price (Priority Fee)
+
+```rust
+use solana_sdk::compute_budget::ComputeBudgetInstruction;
+
+// fee_response.priority_fee is in micro-lamports per compute unit
+let set_priority_fee_ix = ComputeBudgetInstruction::set_compute_unit_price(
+    fee_response.priority_fee,
+);
+
+// Add to your transaction's instruction list
+transaction.instructions.insert(0, set_priority_fee_ix);
+```
+
+### 2. Add Jito Tip Transfer
+
+```rust
+use solana_sdk::system_instruction;
+
+// Select one of Jito's tip accounts (rotate for load distribution)
+let jito_tip_account = "96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5"
+    .parse::<solana_sdk::pubkey::Pubkey>()?;
+
+let tip_ix = system_instruction::transfer(
+    &your_wallet_pubkey,
+    &jito_tip_account,
+    fee_response.recommended_tip, // in lamports
+);
+
+transaction.instructions.push(tip_ix);
+```
+
+<Note>
+  You do not need to use both `priorityFee` and `recommendedTip` in every transaction. Use `priorityFee` for standard priority lane inclusion and `recommendedTip` when submitting via Jito bundles. Combining both maximizes inclusion probability on heavily contested slots.
+</Note>
+
+## Example Stream Output
+
+```json
+{
+  "priorityFee": 5000,
+  "recommendedTip": 100000,
+  "timestamp": 1712345700
+}
+```
+
+## Pricing & Discounts
+
+| Subscription Period | Price       | Discount |
+| ------------------- | ----------- | -------- |
+| 1 month             | $300/month  | —        |
+| 3 months            | $300/month  | 5% off   |
+| 6 months            | $300/month  | 10% off  |
+| 9 months            | $300/month  | 15% off  |
+| 12 months           | $300/month  | 20% off  |

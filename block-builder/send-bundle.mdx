@@ -1,0 +1,147 @@
+---
+title: "eth_sendBundle: Submit a Transaction Bundle to Block Builder"
+sidebarTitle: "Send Bundle"
+description: "Submit an ordered batch of signed transactions to BlockRazor's Block Builder for atomic inclusion in a specified BSC target block."
+---
+
+The `eth_sendBundle` method lets you group multiple signed transactions into a single atomic bundle and submit it directly to BlockRazor's Block Builder. Because the Block Builder controls block construction, all transactions in a bundle are either included together in the exact order you specify or not at all—eliminating the risk of partial execution. This makes `eth_sendBundle` the preferred submission path for backrunning strategies, arbitrage bots, copy-trading systems, and any workflow where transaction ordering is critical.
+
+<Note>
+  New registered users can submit bundles to the Block Builder on BSC **for free** with no submission-rate limits. Sign up at [https://blockrazor.io](https://blockrazor.io) to get started.
+</Note>
+
+## Request Format
+
+Send a standard JSON-RPC 2.0 `POST` request to the BlockRazor Block Builder endpoint with the method `eth_sendBundle`.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "eth_sendBundle",
+  "params": [
+    {
+      "txs": ["0xSIGNED_TX_HEX_1", "0xSIGNED_TX_HEX_2"],
+      "blockNumber": "0xE4E1C0",
+      "minTimestamp": 0,
+      "maxTimestamp": 0
+    }
+  ],
+  "id": 1
+}
+```
+
+## Parameters
+
+<ParamField body="txs" type="array" required>
+  An ordered array of signed transaction hex strings (RLP-encoded and prefixed with `0x`). Transactions are included in the block in the exact order provided. All transactions must be valid and fully signed before submission.
+</ParamField>
+
+<ParamField body="blockNumber" type="string" required>
+  The target block number, expressed as a hexadecimal string (e.g., `"0xE4E1C0"`). The bundle will only be considered for inclusion in this specific block. If the block is mined before your bundle is accepted, the bundle is discarded.
+</ParamField>
+
+<ParamField body="minTimestamp" type="integer">
+  Optional Unix timestamp (seconds). The bundle will not be included in any block whose timestamp is earlier than this value. Set to `0` to disable the lower bound.
+</ParamField>
+
+<ParamField body="maxTimestamp" type="integer">
+  Optional Unix timestamp (seconds). The bundle will not be included in any block whose timestamp is later than this value. Set to `0` to disable the upper bound.
+</ParamField>
+
+## Response Format
+
+A successful submission returns a `bundleHash` that uniquely identifies your bundle within the Block Builder. You can use this hash with [`eth_traceBundle`](/block-builder/trace-bundle) to retrieve execution details after the target block is mined.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "bundleHash": "0xABC123DEF456..."
+  }
+}
+```
+
+<ResponseField name="result.bundleHash" type="string">
+  A hex string that uniquely identifies the submitted bundle. Retain this value to trace execution results via `eth_traceBundle`.
+</ResponseField>
+
+## Example Integration
+
+The following example builds a two-transaction bundle targeting a specific block and submits it using a standard HTTP client.
+
+<Tabs>
+  <Tab title="JavaScript (fetch)">
+    ```javascript
+    const endpoint = "https://blockrazor.io/api/block-builder";
+
+    const bundle = {
+      jsonrpc: "2.0",
+      method: "eth_sendBundle",
+      params: [
+        {
+          txs: [
+            "0xSIGNED_TX_HEX_1",
+            "0xSIGNED_TX_HEX_2",
+          ],
+          blockNumber: "0xE4E1C0",
+          minTimestamp: 0,
+          maxTimestamp: 0,
+        },
+      ],
+      id: 1,
+    };
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer YOUR_API_KEY",
+      },
+      body: JSON.stringify(bundle),
+    });
+
+    const data = await response.json();
+    console.log("Bundle hash:", data.result.bundleHash);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://blockrazor.io/api/block-builder \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "eth_sendBundle",
+        "params": [{
+          "txs": ["0xSIGNED_TX_HEX_1", "0xSIGNED_TX_HEX_2"],
+          "blockNumber": "0xE4E1C0",
+          "minTimestamp": 0,
+          "maxTimestamp": 0
+        }],
+        "id": 1
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+## Best Practices
+
+<Steps>
+  <Step title="Sign all transactions before bundling">
+    Every entry in `txs` must be a fully signed, RLP-encoded raw transaction. The Block Builder will reject bundles that contain unsigned or malformed transactions.
+  </Step>
+  <Step title="Target the correct block number">
+    Query `eth_blockNumber` immediately before building your bundle to get the latest block, then target `latestBlock + 1`. Bundles that miss their target block are silently discarded.
+  </Step>
+  <Step title="Simulate before submitting">
+    Use [`eth_callBundle`](/block-builder/call-bundle) to simulate your bundle against the current state. Confirming profitability before live submission avoids wasted submissions and gas costs.
+  </Step>
+  <Step title="Retain the bundle hash">
+    Store the returned `bundleHash` so you can call [`eth_traceBundle`](/block-builder/trace-bundle) to verify execution and diagnose any issues after the target block is produced.
+  </Step>
+</Steps>
+
+<Tip>
+  If your strategy requires lower submission latency, consider using [Fast Submit](/block-builder/fast-submit) in conjunction with `eth_sendBundle` to further reduce the time between bundle construction and Block Builder receipt.
+</Tip>

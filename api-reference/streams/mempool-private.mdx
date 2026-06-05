@@ -1,0 +1,164 @@
+---
+title: "Private Mempool Stream — BlockRazor RPC Orderflow"
+sidebarTitle: "Private Mempool"
+description: "Access BlockRazor's private RPC orderflow stream on BSC and Ethereum to see transactions before they enter the public mempool."
+---
+
+The Private Mempool stream gives you exclusive access to transactions submitted through BlockRazor's RPC endpoints that have not yet been broadcast to the public peer-to-peer network. Because these transactions are routed privately through BlockRazor's infrastructure, they arrive at your listener before they become visible in the public mempool — providing a meaningful latency and information advantage for searchers, MEV bots, and quantitative trading systems. The stream is available on both BSC and Ethereum at **$1,000 per month**.
+
+<Info>
+  The Private Mempool surfaces **BlockRazor RPC orderflow** — real user transactions submitted with MEV protection. These are not synthetic or simulated; they represent genuine pending activity that never touches the public P2P layer until block inclusion or expiration.
+</Info>
+
+## Connection Details
+
+| Property  | Value                                                  |
+| --------- | ------------------------------------------------------ |
+| Protocol  | WebSocket (WSS)                                        |
+| Pricing   | $1,000 / month                                         |
+| Chains    | BNB Smart Chain (BSC), Ethereum                        |
+
+### Endpoints
+
+<Tabs>
+  <Tab title="BSC">
+    ```bash
+    wss://mempool.blockrazor.io/bsc/private?auth=YOUR_AUTH_TOKEN
+    ```
+  </Tab>
+  <Tab title="Ethereum">
+    ```bash
+    wss://mempool.blockrazor.io/ethereum/private?auth=YOUR_AUTH_TOKEN
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Replace `YOUR_AUTH_TOKEN` with the API token from your BlockRazor dashboard. A single subscription grants access to both chain endpoints at the same pricing tier.
+</Note>
+
+## Authentication
+
+Append your token as a query parameter when establishing the WebSocket connection. No additional handshake is needed — the server starts streaming private pending transactions immediately after authentication succeeds.
+
+```bash
+wss://mempool.blockrazor.io/bsc/private?auth=YOUR_AUTH_TOKEN
+```
+
+## Code Examples
+
+Connect and process private mempool events using the WebSocket client for your preferred chain:
+
+<Tabs>
+  <Tab title="BSC">
+    ```javascript
+    const WebSocket = require('ws');
+
+    const ws = new WebSocket(
+      'wss://mempool.blockrazor.io/bsc/private?auth=YOUR_AUTH_TOKEN'
+    );
+
+    ws.on('open', () => console.log('Connected to BSC Private Mempool'));
+
+    ws.on('message', (data) => {
+      const tx = JSON.parse(data);
+      console.log(
+        'Private pending tx:', tx.hash,
+        'from:', tx.from,
+        'private orderflow:', tx.privateOrderflow
+      );
+    });
+
+    ws.on('error', (err) => console.error('WebSocket error:', err));
+    ws.on('close', () => console.log('Connection closed'));
+    ```
+  </Tab>
+  <Tab title="Ethereum">
+    ```javascript
+    const WebSocket = require('ws');
+
+    const ws = new WebSocket(
+      'wss://mempool.blockrazor.io/ethereum/private?auth=YOUR_AUTH_TOKEN'
+    );
+
+    ws.on('open', () => console.log('Connected to Ethereum Private Mempool'));
+
+    ws.on('message', (data) => {
+      const tx = JSON.parse(data);
+      console.log(
+        'Private pending tx:', tx.hash,
+        'from:', tx.from,
+        'private orderflow:', tx.privateOrderflow
+      );
+    });
+
+    ws.on('error', (err) => console.error('WebSocket error:', err));
+    ws.on('close', () => console.log('Connection closed'));
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+  Filter on `tx.privateOrderflow === true` to isolate transactions that have never appeared in the public mempool. These represent the highest-signal events for copy-trading and backrunning strategies.
+</Tip>
+
+## Response Fields
+
+Each message is a JSON object describing a single private pending transaction. Fields mirror the public mempool format with one additional indicator.
+
+<ResponseField name="hash" type="string" required>
+  The unique 32-byte hex transaction hash (e.g. `0xabc123...`).
+</ResponseField>
+
+<ResponseField name="from" type="string" required>
+  The originating sender address that signed the transaction.
+</ResponseField>
+
+<ResponseField name="to" type="string" required>
+  The recipient address or target contract. `null` for contract-creation transactions.
+</ResponseField>
+
+<ResponseField name="value" type="string" required>
+  Native token value transferred, hex-encoded in **wei** (BNB for BSC, ETH for Ethereum).
+</ResponseField>
+
+<ResponseField name="gas" type="string" required>
+  Sender-specified gas limit for the transaction, hex-encoded integer.
+</ResponseField>
+
+<ResponseField name="gasPrice" type="string" required>
+  Gas price offered by the sender in **wei**, hex-encoded. For EIP-1559 transactions on Ethereum, this reflects the effective gas price.
+</ResponseField>
+
+<ResponseField name="data" type="string" required>
+  ABI-encoded calldata. `"0x"` for plain transfers; contains function selector and arguments for contract interactions.
+</ResponseField>
+
+<ResponseField name="privateOrderflow" type="boolean" required>
+  `true` when this transaction was submitted exclusively through BlockRazor's private RPC and has not yet been propagated to the public mempool. `false` if the transaction has since been broadcast publicly.
+</ResponseField>
+
+## Example Message
+
+```json
+{
+  "hash": "0x9e1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a",
+  "from": "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
+  "to": "0x10ED43C718714eb63d5aA57B78B54704E256024E",
+  "value": "0x0",
+  "gas": "0x55730",
+  "gasPrice": "0x1DCD65000",
+  "data": "0x7ff36ab5000000000000000000000000000000000000000000000000002386f26fc10000",
+  "privateOrderflow": true
+}
+```
+
+## Pricing & Discounts
+
+| Subscription Period | Discount |
+| ------------------- | -------- |
+| 1 month             | —        |
+| 3 months            | 5% off   |
+| 6 months            | 10% off  |
+| 9 months            | 15% off  |
+| 12 months           | 20% off  |

@@ -1,0 +1,85 @@
+---
+title: "Dedicate Connection: Reserved Block Builder Channel"
+sidebarTitle: "Dedicate Connection"
+description: "Provision a private, reserved low-latency channel to BlockRazor's Block Builder with dedicated bandwidth, priority routing, and hands-on technical support."
+---
+
+A Dedicate Connection provides your organization with an exclusive, private channel to BlockRazor's Block Builder infrastructure. Unlike shared API access—where your traffic competes with other users for bandwidth and routing resources—a dedicated connection reserves a private pathway from your systems directly into the Block Builder's intake layer. This eliminates shared-infrastructure contention, ensures consistent low-latency delivery at all times of day, and pairs your team with BlockRazor's technical staff for setup, tuning, and ongoing operational support.
+
+Dedicate Connection is designed for high-frequency trading operations, institutional searchers, and any organization for whom a few milliseconds of additional latency or a brief period of degraded throughput represents meaningful financial loss.
+
+## Key Benefits
+
+<CardGroup cols={2}>
+  <Card title="Reserved Bandwidth" icon="network-wired">
+    Your dedicated channel is not shared with other BlockRazor clients. Bandwidth is reserved exclusively for your traffic, eliminating queuing and contention at peak times.
+  </Card>
+  <Card title="Priority Routing" icon="arrow-up-right-dots">
+    Traffic on your dedicated channel is routed with elevated priority through BlockRazor's multi-region network, minimizing propagation hops to Block Builder nodes.
+  </Card>
+  <Card title="Technical Support" icon="headset">
+    BlockRazor's engineering team provides hands-on support for connection setup, configuration, and ongoing optimization tailored to your specific integration requirements.
+  </Card>
+  <Card title="Consistent Performance" icon="chart-line">
+    By bypassing shared infrastructure, your latency profile remains stable regardless of how other users' traffic volumes fluctuate across the platform.
+  </Card>
+</CardGroup>
+
+## Pricing
+
+A Dedicate Connection to the BlockRazor Block Builder is available at **$1,000/month**.
+
+| Service | Description | Price |
+|---|---|---|
+| Dedicated Channel | Private reserved channel with dedicated technical support | $1,000 / month |
+
+Multi-month subscription discounts apply:
+
+| Subscription Period | Discount |
+|---|---|
+| 1 month | — |
+| 3 months | 5% off |
+| 6 months | 10% off |
+| 9 months | 15% off |
+| 12 months | 20% off |
+
+A 12-month Dedicate Connection subscription brings the effective monthly cost down to **$800/month**. See the [Pricing](/pricing) page for the complete pricing schedule and information on combining the Dedicate Connection with other services.
+
+<Note>
+  The Dedicate Connection can be purchased as a standalone service or combined with the BSC Package ($1,250/month) and other individual subscriptions (such as Bundle Tracing & Explorer at $1,500/month) to build a comprehensive Block Builder integration stack.
+</Note>
+
+## Setup Process
+
+<Steps>
+  <Step title="Contact BlockRazor to initiate provisioning">
+    Reach out to the BlockRazor team through [https://blockrazor.io](https://blockrazor.io) to express interest in a Dedicate Connection. Provide your organization name, expected transaction volume, geographic region of your primary infrastructure, and any specific latency or throughput requirements. A BlockRazor representative will respond to schedule a scoping call.
+  </Step>
+  <Step title="Technical scoping and architecture review">
+    BlockRazor's engineering team will work with you to understand your existing submission infrastructure and determine the optimal connection topology. This includes selecting the most appropriate BlockRazor Point of Presence (PoP) region relative to your servers, agreeing on connection protocol and authentication mechanism, and defining bandwidth allocation based on your expected submission rate.
+  </Step>
+  <Step title="Provision and configure the dedicated channel">
+    BlockRazor provisions the reserved channel and provides you with connection credentials, endpoint configuration, and any required network allowlist entries. Your team configures your submission clients to route through the dedicated endpoint rather than the shared API surface.
+  </Step>
+  <Step title="Integration testing and validation">
+    Before going live, BlockRazor's technical team assists with end-to-end integration testing. This includes verifying round-trip latency measurements, confirming correct authentication and routing, and running test bundle submissions through the dedicated channel to validate that Block Builder intake is functioning as expected.
+  </Step>
+  <Step title="Go live with ongoing support">
+    Once testing is complete, your team switches production traffic to the dedicated channel. BlockRazor provides a named technical contact for the duration of your subscription to handle any operational questions, performance tuning requests, or incident response.
+  </Step>
+</Steps>
+
+## When to Choose a Dedicate Connection
+
+<Tip>
+  If you are already using [Fast Submit](/block-builder/fast-submit) and find that shared-path latency still varies under congestion, a Dedicate Connection is the next step—it removes all shared-infrastructure variability from your submission path.
+</Tip>
+
+A Dedicate Connection is the right choice when:
+
+- Your strategy requires **consistently sub-millisecond delivery** to the Block Builder, not just average-case low latency.
+- You operate at **high submission rates** (hundreds of bundles or transactions per second) where shared-path queuing is a real concern.
+- You need **guaranteed throughput SLAs** that cannot be provided on shared infrastructure.
+- Your team values a **direct technical relationship** with BlockRazor engineers for tuning and incident response.
+
+For organizations that need low latency but do not yet require a fully dedicated channel, [Fast Submit](/block-builder/fast-submit) (included in the BSC Package at $1,250/month) provides a strong intermediate option before committing to a dedicated connection.

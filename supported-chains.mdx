@@ -1,0 +1,85 @@
+---
+title: "Supported Chains and Available Services by Network"
+sidebarTitle: "Supported Chains"
+description: "A full compatibility matrix of BlockRazor services — Transaction Submission, Streams, and Block Builder — across Solana, BSC, Ethereum, and Base."
+---
+
+BlockRazor's infrastructure spans four major public blockchains. Each chain has a distinct set of available services based on network architecture, validator dynamics, and ecosystem demand. Use the sections below to find every service available on your target network and navigate directly to the relevant documentation.
+
+## Solana
+
+Solana support focuses on high-speed transaction submission and data streaming, optimized for the network's unique throughput characteristics.
+
+| Service | Available Features |
+|---|---|
+| **Transaction Submission** | [Fast](/transaction-submission/fast) · [Gas Sponsor](/transaction-submission/gas-sponsor) |
+| **Streams** | [Block Stream](/streams/block-stream) · [Network Fee Stream](/streams/network-fee-stream) |
+
+<Info>
+  Solana's **Network Fee Stream** delivers real-time priority fee and tip data, helping traders set competitive fees without overpaying.
+</Info>
+
+---
+
+## BSC (BNB Smart Chain)
+
+BSC has the broadest BlockRazor service coverage of any chain, including the full Transaction Submission suite, all five Stream types, and exclusive access to the Block Builder.
+
+| Service | Available Features |
+|---|---|
+| **Transaction Submission** | [RPC](/transaction-submission/rpc) · [Fast](/transaction-submission/fast) · [Gas Sponsor](/transaction-submission/gas-sponsor) · [Bundle](/transaction-submission/bundle) |
+| **Streams** | [Public Mempool](/streams/mempool) · [Private Mempool](/streams/mempool) · [Block Stream](/streams/block-stream) · [Node Stream](/streams/node-stream) · [Network Fee Stream](/streams/network-fee-stream) |
+| **Block Builder** | [Block Builder](/block-builder/overview) |
+
+<Tip>
+  BlockRazor's Block Builder on BSC has a historical cumulative block production rate of **37%**, ranking first across the entire BSC chain. Searchers and project builders can submit bundles and privacy transactions to Block Builder for free as new registered users.
+</Tip>
+
+---
+
+## Ethereum
+
+Ethereum support covers core transaction submission modes and private mempool access, making it well-suited for MEV-sensitive workflows.
+
+| Service | Available Features |
+|---|---|
+| **Transaction Submission** | [RPC](/transaction-submission/rpc) · [Gas Sponsor](/transaction-submission/gas-sponsor) · [Bundle](/transaction-submission/bundle) |
+| **Streams** | [Private Mempool](/streams/mempool) |
+
+<Note>
+  Ethereum's **Bundle** mode supports both project builder submissions via `eth_sendBundle` and Searcher bids via `eth_sendBid`, enabling full participation in the orderflow auction.
+</Note>
+
+---
+
+## Base
+
+Base support is centered on low-latency transaction submission and block data streaming, tailored for the network's high-throughput rollup environment.
+
+| Service | Available Features |
+|---|---|
+| **Transaction Submission** | [RPC](/transaction-submission/rpc) · [Fast](/transaction-submission/fast) |
+| **Streams** | [Block Stream](/streams/block-stream) |
+
+<Info>
+  Base's **Block Stream** includes support for FlashBlock data — low-latency acquisition of Base FlashBlock updates for time-sensitive trading applications.
+</Info>
+
+---
+
+## Full Compatibility Matrix
+
+The table below summarizes service availability at a glance across all supported chains.
+
+| Service | Solana | BSC | Ethereum | Base |
+|---|:---:|:---:|:---:|:---:|
+| RPC | — | ✓ | ✓ | ✓ |
+| Fast | ✓ | ✓ | — | ✓ |
+| Gas Sponsor | ✓ | ✓ | ✓ | — |
+| Bundle | — | ✓ | ✓ | — |
+| Public Mempool | — | ✓ | — | — |
+| Private Mempool | — | ✓ | ✓ | — |
+| Block Stream | ✓ | ✓ | — | ✓ |
+| Node Stream | — | ✓ | — | — |
+| Network Fee Stream | ✓ | ✓ | — | — |
+| Block Builder | — | ✓ | — | — |

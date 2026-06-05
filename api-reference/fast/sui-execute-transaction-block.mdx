@@ -1,0 +1,295 @@
+---
+title: "Sui Fast Mode: sui_executeTransactionBlock via BlockRazor"
+sidebarTitle: "Sui Execute Tx Block"
+description: "Execute Sui transaction blocks at high speed through BlockRazor's Fast mode endpoint using the sui_executeTransactionBlock method with TypeScript and Go examples."
+---
+
+BlockRazor's Sui Fast mode provides a low-latency path for executing Sui transaction blocks by routing your signed payloads through a globally distributed acceleration network with direct validator connections. The `sui_executeTransactionBlock` method accepts a serialized transaction block and its corresponding signature, then submits the pair to the network with priority routing for faster finality. This is the recommended method for wallets, DEXs, and trading bots on Sui that require consistent, sub-second transaction execution under real-world network conditions.
+
+## Endpoint
+
+```
+POST https://fast.blockrazor.io/sui
+```
+
+All requests must include your BlockRazor API token in the `Authorization` header.
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Your BlockRazor API token as a Bearer token: `Bearer YOUR_AUTH_TOKEN`. Obtain your token from the [BlockRazor dashboard](https://blockrazor.io).
+</ParamField>
+
+## Method
+
+`sui_executeTransactionBlock`
+
+This method matches the Sui JSON-RPC specification for `sui_executeTransactionBlock`, making BlockRazor's Fast endpoint a drop-in replacement for the standard Sui RPC — simply change the URL and add the `Authorization` header.
+
+## Request Parameters
+
+<ParamField body="transactionBlock" type="string" required>
+  The serialized, base64-encoded Sui transaction block (`TransactionData`). Build and serialize the transaction block using the Sui SDK before passing it to this field.
+</ParamField>
+
+<ParamField body="signature" type="string" required>
+  The base64-encoded signature over the transaction block, produced by signing the transaction block bytes with the sender's private key. The signature scheme (Ed25519, Secp256k1, etc.) must match the sender's address.
+</ParamField>
+
+<ParamField body="options" type="object">
+  Optional execution options controlling what data is returned in the response.
+
+  <Expandable title="options fields">
+    <ParamField body="showEffects" type="boolean">
+      When `true`, includes the transaction effects (status, gas used, object changes) in the response. Defaults to `false`.
+    </ParamField>
+    <ParamField body="showEvents" type="boolean">
+      When `true`, includes emitted events in the response. Defaults to `false`.
+    </ParamField>
+    <ParamField body="showObjectChanges" type="boolean">
+      When `true`, includes object mutations and creations triggered by the transaction. Defaults to `false`.
+    </ParamField>
+    <ParamField body="showBalanceChanges" type="boolean">
+      When `true`, includes coin balance changes for all addresses involved. Defaults to `false`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="requestType" type="string">
+  Controls when the RPC returns a response relative to the transaction's lifecycle. Options: `"WaitForEffectsCert"` (returns after effects are certified), `"WaitForLocalExecution"` (returns after local execution, default). For time-sensitive applications, `"WaitForEffectsCert"` offers the fastest response time.
+</ParamField>
+
+## Response
+
+<ResponseField name="digest" type="string">
+  The unique transaction digest (base58-encoded) identifying the executed transaction block on the Sui network.
+</ResponseField>
+
+<ResponseField name="effects" type="object">
+  Present when `options.showEffects` is `true`. Contains the execution status, gas summary, and object changes produced by the transaction.
+
+  <Expandable title="effects fields">
+    <ResponseField name="status" type="object">
+      Execution outcome. `{ "status": "success" }` on success, or `{ "status": "failure", "error": "..." }` on failure.
+    </ResponseField>
+    <ResponseField name="gasUsed" type="object">
+      Breakdown of gas consumed: `computationCost`, `storageCost`, `storageRebate`.
+    </ResponseField>
+    <ResponseField name="mutated" type="array">
+      List of objects mutated by the transaction.
+    </ResponseField>
+    <ResponseField name="created" type="array">
+      List of new objects created by the transaction.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="events" type="array">
+  Present when `options.showEvents` is `true`. Array of events emitted during transaction execution.
+</ResponseField>
+
+<ResponseField name="error" type="object">
+  Present when the RPC call fails.
+  <Expandable title="error fields">
+    <ResponseField name="code" type="integer">
+      JSON-RPC error code.
+    </ResponseField>
+    <ResponseField name="message" type="string">
+      Description of the failure.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Code Examples
+
+<CodeGroup>
+
+```typescript TypeScript (@mysten/sui.js)
+import { SuiClient } from '@mysten/sui.js/client';
+import { TransactionBlock } from '@mysten/sui.js/transactions';
+import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
+
+// Connect to the BlockRazor Sui Fast endpoint
+const client = new SuiClient({
+  url: 'https://fast.blockrazor.io/sui',
+});
+
+// Build your transaction block
+const txb = new TransactionBlock();
+
+// Example: transfer SUI to a recipient
+const [coin] = txb.splitCoins(txb.gas, [txb.pure(100_000_000n)]); // 0.1 SUI
+txb.transferObjects([coin], txb.pure(RECIPIENT_ADDRESS));
+
+// Sign the transaction block with your keypair
+const keypair = Ed25519Keypair.fromSecretKey(YOUR_SECRET_KEY_BYTES);
+const { bytes: serializedTxBlock, signature } = await txb.sign({
+  client,
+  signer: keypair,
+});
+
+// Execute the transaction block via BlockRazor Fast mode
+const result = await client.executeTransactionBlock({
+  transactionBlock: serializedTxBlock,
+  signature: signature,
+  options: {
+    showEffects: true,
+    showEvents: true,
+    showObjectChanges: true,
+  },
+  requestType: 'WaitForEffectsCert',
+});
+
+console.log('Transaction digest:', result.digest);
+console.log('Execution status:', result.effects?.status);
+```
+
+```go Go
+package main
+
+import (
+    "bytes"
+    "context"
+    "encoding/json"
+    "fmt"
+    "io"
+    "log"
+    "net/http"
+)
+
+// SuiRequest represents a JSON-RPC request to the Sui endpoint
+type SuiRequest struct {
+    JSONRPC string        `json:"jsonrpc"`
+    ID      int           `json:"id"`
+    Method  string        `json:"method"`
+    Params  []interface{} `json:"params"`
+}
+
+// SuiResponse represents a JSON-RPC response from the Sui endpoint
+type SuiResponse struct {
+    JSONRPC string          `json:"jsonrpc"`
+    ID      int             `json:"id"`
+    Result  json.RawMessage `json:"result,omitempty"`
+    Error   *SuiError       `json:"error,omitempty"`
+}
+
+type SuiError struct {
+    Code    int    `json:"code"`
+    Message string `json:"message"`
+}
+
+func executeTransactionBlock(
+    ctx context.Context,
+    serializedTxBlock string,
+    signature string,
+    authToken string,
+) (*SuiResponse, error) {
+    reqBody := SuiRequest{
+        JSONRPC: "2.0",
+        ID:      1,
+        Method:  "sui_executeTransactionBlock",
+        Params: []interface{}{
+            serializedTxBlock, // base64-encoded TransactionData
+            []string{signature}, // base64-encoded signature(s)
+            map[string]bool{
+                "showEffects":       true,
+                "showEvents":        true,
+                "showObjectChanges": true,
+            },
+            "WaitForEffectsCert", // requestType
+        },
+    }
+
+    body, err := json.Marshal(reqBody)
+    if err != nil {
+        return nil, fmt.Errorf("marshal request: %w", err)
+    }
+
+    req, err := http.NewRequestWithContext(
+        ctx,
+        http.MethodPost,
+        "https://fast.blockrazor.io/sui",
+        bytes.NewReader(body),
+    )
+    if err != nil {
+        return nil, fmt.Errorf("create request: %w", err)
+    }
+
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer "+authToken)
+
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        return nil, fmt.Errorf("send request: %w", err)
+    }
+    defer resp.Body.Close()
+
+    respBytes, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return nil, fmt.Errorf("read response: %w", err)
+    }
+
+    var suiResp SuiResponse
+    if err := json.Unmarshal(respBytes, &suiResp); err != nil {
+        return nil, fmt.Errorf("unmarshal response: %w", err)
+    }
+
+    if suiResp.Error != nil {
+        return nil, fmt.Errorf("rpc error %d: %s", suiResp.Error.Code, suiResp.Error.Message)
+    }
+
+    return &suiResp, nil
+}
+
+func main() {
+    ctx := context.Background()
+
+    // Replace these with your actual serialized transaction block and signature.
+    // Build and sign your transaction using the Sui Go SDK or another Sui library.
+    serializedTxBlock := "BASE64_ENCODED_TRANSACTION_DATA"
+    signature := "BASE64_ENCODED_SIGNATURE"
+    authToken := "YOUR_AUTH_TOKEN"
+
+    result, err := executeTransactionBlock(ctx, serializedTxBlock, signature, authToken)
+    if err != nil {
+        log.Fatalf("executeTransactionBlock failed: %v", err)
+    }
+
+    fmt.Printf("Response: %s\n", string(result.Result))
+}
+```
+
+```bash cURL
+curl -X POST https://fast.blockrazor.io/sui \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "sui_executeTransactionBlock",
+    "params": [
+      "BASE64_ENCODED_TRANSACTION_DATA",
+      ["BASE64_ENCODED_SIGNATURE"],
+      {
+        "showEffects": true,
+        "showEvents": true,
+        "showObjectChanges": true
+      },
+      "WaitForEffectsCert"
+    ]
+  }'
+```
+
+</CodeGroup>
+
+<Note>
+  The `transactionBlock` must be serialized using the Sui BCS (Binary Canonical Serialization) format and then base64-encoded before submission. Use the official Sui SDK (`@mysten/sui.js` for TypeScript, or the Sui Move framework tooling) to produce a correctly encoded transaction block.
+</Note>
+
+<Tip>
+  Use `requestType: "WaitForEffectsCert"` when you need the lowest-latency response after submission. This returns as soon as the transaction effects are certified by a quorum of validators, which is the earliest point at which the transaction can be considered final.
+</Tip>
+
+<Info>
+  The BlockRazor Sui Fast endpoint is fully compatible with the standard Sui JSON-RPC specification. Any Sui client library that supports custom RPC URLs can be pointed at `https://fast.blockrazor.io/sui` without code changes beyond adding the `Authorization` header.
+</Info>

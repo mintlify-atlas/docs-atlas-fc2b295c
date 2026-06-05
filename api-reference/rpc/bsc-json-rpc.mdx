@@ -1,0 +1,131 @@
+---
+title: "BSC JSON-RPC: eth_sendRawTransaction via BlockRazor"
+sidebarTitle: "BSC JSON-RPC"
+description: "Submit signed BSC transactions through BlockRazor's JSON-RPC endpoint with built-in MEV protection and no rate limits for new users."
+---
+
+BlockRazor exposes a standard JSON-RPC interface for BNB Smart Chain (BSC), letting you drop it in as a replacement for any Ethereum-compatible provider. The RPC endpoint routes your transactions through BlockRazor's globally distributed infrastructure with built-in MEV protection, so your transactions land on-chain faster and more safely than through a public node. New registered users enjoy unlimited throughput on this endpoint with no rate limits applied.
+
+## Endpoint
+
+```
+POST https://rpc.blockrazor.io/bsc
+```
+
+All requests must include an `Authorization` header carrying your API token.
+
+<Note>
+  BSC RPC has **no rate limit** for new registered users. MEV protection is enabled by default on every transaction submitted through this endpoint — no additional configuration is required.
+</Note>
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Your BlockRazor API token, passed as a Bearer token: `Bearer YOUR_AUTH_TOKEN`. Obtain your token from the [BlockRazor dashboard](https://blockrazor.io).
+</ParamField>
+
+## Request Body
+
+Requests follow the standard JSON-RPC 2.0 envelope.
+
+<ParamField body="jsonrpc" type="string" required>
+  JSON-RPC version string. Must be `"2.0"`.
+</ParamField>
+
+<ParamField body="method" type="string" required>
+  The RPC method name. For transaction submission this is `"eth_sendRawTransaction"`.
+</ParamField>
+
+<ParamField body="params" type="array" required>
+  An array containing exactly one element — the signed transaction data.
+
+  <Expandable title="params[0] — signedTransactionData">
+    <ParamField body="signedTransactionData" type="string" required>
+      The RLP-encoded signed transaction in hexadecimal format, prefixed with `0x`. Sign the transaction offline using your private key before submitting.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="id" type="integer">
+  Client-defined request identifier echoed back in the response. Defaults to `1` if omitted.
+</ParamField>
+
+## Response
+
+<ResponseField name="jsonrpc" type="string">
+  Always `"2.0"`.
+</ResponseField>
+
+<ResponseField name="id" type="integer">
+  Mirrors the `id` value sent in the request.
+</ResponseField>
+
+<ResponseField name="result" type="string">
+  The 32-byte transaction hash (`0x`-prefixed hex string) assigned to the submitted transaction. Use this hash to poll for receipt confirmation via `eth_getTransactionReceipt`.
+</ResponseField>
+
+<ResponseField name="error" type="object">
+  Present only when the request fails.
+
+  <Expandable title="error fields">
+    <ResponseField name="code" type="integer">
+      JSON-RPC error code (e.g. `-32602` for invalid params).
+    </ResponseField>
+    <ResponseField name="message" type="string">
+      Human-readable description of the error.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://rpc.blockrazor.io/bsc \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_sendRawTransaction",
+    "params": ["0xSIGNED_TX_HEX"],
+    "id": 1
+  }'
+```
+
+```javascript ethers.js
+import { ethers } from 'ethers';
+
+const provider = new ethers.JsonRpcProvider(
+  'https://rpc.blockrazor.io/bsc',
+  undefined,
+  { headers: { Authorization: 'Bearer YOUR_AUTH_TOKEN' } }
+);
+
+const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+
+const tx = await wallet.sendTransaction({
+  to: RECIPIENT,
+  value: ethers.parseEther('0.01'),
+});
+
+console.log('tx hash:', tx.hash);
+
+// Wait for on-chain confirmation
+const receipt = await tx.wait();
+console.log('confirmed in block:', receipt.blockNumber);
+```
+
+</CodeGroup>
+
+## Standard JSON-RPC Methods
+
+Beyond `eth_sendRawTransaction`, the BSC RPC endpoint supports the full suite of standard Ethereum-compatible JSON-RPC methods, including `eth_getTransactionReceipt`, `eth_getBalance`, `eth_blockNumber`, `eth_call`, and more. Swap any existing BSC RPC URL for `https://rpc.blockrazor.io/bsc` and include the `Authorization` header to get started.
+
+<Tip>
+  To query the confirmation status of a submitted transaction, call `eth_getTransactionReceipt` with the returned transaction hash. A non-null response means the transaction has been included in a block.
+</Tip>
+
+<Info>
+  BlockRazor's BSC Block Builder holds a historical cumulative block production rate of 37%, ranking first across the entire BSC chain. Transactions sent through the RPC endpoint benefit from this infrastructure automatically.
+</Info>

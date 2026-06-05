@@ -1,20 +1,67 @@
 ---
-title: "Introduction"
-description: "Welcome to your project"
+title: "BlockRazor: Web3 Transaction Infrastructure"
+sidebarTitle: "Home"
+description: "BlockRazor delivers ultra-low-latency transaction submission, real-time blockchain data streams, and block building for Ethereum, BSC, Solana, and Base."
 ---
 
-Write a short description of your product here. What it does, who it's for, and what they can accomplish with it.
+BlockRazor is a leading Web3 transaction infrastructure platform built for wallets, DEXs, trading bots, searchers, and quantitative systems. It provides multi-chain transaction submission (RPC, Fast, Gas Sponsor, Bundle), high-performance data streams (Mempool, Block Stream, Node Stream, Network Fee), and a BSC Block Builder with a historical block production rate of 37% — the highest on the BNB Smart Chain.
 
-<Tip>
-  Ready to make this your own? Start by editing this page. Update your `docs.json` file to customize your site. Then fill out the [Quickstart](/quickstart) page.
-</Tip>
+<CardGroup cols={2}>
+  <Card title="Introduction" icon="book-open" href="/introduction">
+    Learn what BlockRazor offers and which services fit your use case.
+  </Card>
+  <Card title="Supported Chains" icon="link-slash" href="/supported-chains">
+    View every supported chain and the services available on each.
+  </Card>
+  <Card title="Authentication" icon="key" href="/authentication">
+    Obtain your auth token and start making authenticated API requests.
+  </Card>
+  <Card title="Pricing" icon="tag" href="/pricing">
+    Explore subscription tiers, packages, and free limits for new users.
+  </Card>
+</CardGroup>
 
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  This card links to the quickstart page in your project.
-</Card>
-<Card title="Components" icon="puzzle-piece" href="https://mintlify.com/docs/components">
-  Add cards, callouts, steps, tabs, and more to design and structure your pages.
-</Card>
-<Card title="Settings" icon="gear" href="https://mintlify.com/docs/organize/settings">
-  Set your site name, branding, and navigation in the `docs.json` file.
-</Card>
+## Services
+
+<CardGroup cols={3}>
+  <Card title="Transaction Submission" icon="paper-plane" href="/transaction-submission/rpc">
+    Submit transactions via RPC, Fast, Gas Sponsor, or Bundle across all supported chains.
+  </Card>
+  <Card title="Streams" icon="wave-sine" href="/streams/mempool">
+    Subscribe to Mempool, Block, Node, and Network Fee streams for real-time chain data.
+  </Card>
+  <Card title="Block Builder" icon="cube" href="/block-builder/overview">
+    Use BlockRazor's BSC block builder with PBS architecture and global validator connectivity.
+  </Card>
+</CardGroup>
+
+## Get Started in 3 Steps
+
+<Steps>
+  <Step title="Create an account">
+    Register at [blockrazor.io](https://blockrazor.io) and activate your account via the confirmation email. Copy your auth token from your account dashboard.
+  </Step>
+  <Step title="Choose a service">
+    Pick the transaction submission mode or data stream that fits your workflow. New registered users get free access to RPC, Fast, Bundle, and Block Builder on Solana, BSC, Ethereum, and Base.
+  </Step>
+  <Step title="Send your first request">
+    Pass your auth token in the request header and submit your first transaction or open your first stream connection. See the [API Reference](/api-reference/rpc/bsc-json-rpc) for full endpoint documentation.
+  </Step>
+</Steps>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Wallet / DEX" icon="wallet" href="/use-cases/wallet-dex">
+    MEV-protected RPC and gas sponsorship for seamless user onboarding.
+  </Card>
+  <Card title="Trading Bot" icon="robot" href="/use-cases/trading-bot">
+    Fast mode and Bundle for high-frequency, latency-sensitive strategies.
+  </Card>
+  <Card title="Searcher" icon="magnifying-glass" href="/use-cases/searcher">
+    Private Mempool streams and Bundle bidding for backrunning and arbitrage.
+  </Card>
+  <Card title="Algorithmic Trading" icon="chart-line" href="/use-cases/algorithmic-trading">
+    Node Stream and Network Fee Stream to keep world state synchronized.
+  </Card>
+</CardGroup>

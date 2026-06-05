@@ -1,0 +1,149 @@
+---
+title: "Fast Submit: Direct Low-Latency Block Builder Access"
+sidebarTitle: "Fast Submit"
+description: "Submit transactions to BlockRazor's Block Builder with lower latency and higher stability by routing directly through Block Builder infrastructure on BSC."
+---
+
+Fast Submit is an enhanced transaction submission mode that routes your transactions directly to BlockRazor's Block Builder infrastructure, bypassing the standard relay path used in conventional submission flows. By eliminating intermediate hops, Fast Submit significantly reduces the time between when your transaction leaves your system and when the Block Builder receives it—resulting in measurably lower block inclusion latency and more reliable submission under high-network-congestion scenarios. For time-sensitive strategies where a few milliseconds determine whether you win or lose a block opportunity, Fast Submit is the right tool.
+
+<Info>
+  Fast Submit is included in the **BSC Package** at **$1,250/month**, bundled alongside Public Mempool, Block Stream, Node Stream, Call Bundle, and Tx Trace. See the [Pricing](/pricing) page for the full package breakdown.
+</Info>
+
+## How Fast Submit Works
+
+Standard transaction submission follows a relay path: your client sends to an RPC node, which propagates the transaction through the peer-to-peer network until it eventually reaches block builders and validators. Each hop in this chain adds latency and introduces points of failure under congestion.
+
+Fast Submit replaces this with a **direct channel to BlockRazor's Block Builder nodes**:
+
+1. Your transaction is delivered immediately to the Block Builder's intake layer without traversing the public P2P network.
+2. BlockRazor's multi-region infrastructure ensures the transaction reaches all Block Builder nodes with minimal inter-region propagation time.
+3. The Block Builder places the transaction into its construction pipeline for the next eligible block.
+
+This architecture yields two primary advantages over standard submission:
+
+- **Lower inclusion latency**: Reduced round-trip time means your transaction enters the block construction pipeline faster, increasing the probability of inclusion in the very next block.
+- **Higher stability under congestion**: During periods of high network load, the public P2P network degrades gracefully but often unpredictably. The dedicated Fast Submit path is not affected by public mempool congestion.
+
+## Benefits at a Glance
+
+<CardGroup cols={2}>
+  <Card title="Reduced Inclusion Latency" icon="stopwatch">
+    Direct delivery to the Block Builder skips multiple P2P relay hops, cutting the time from submission to block construction pipeline entry.
+  </Card>
+  <Card title="Higher Stability Under Congestion" icon="shield-check">
+    Bypass the public mempool entirely. Fast Submit maintains consistent delivery performance even when BSC network traffic spikes.
+  </Card>
+  <Card title="Works with Bundles" icon="layer-group">
+    Use Fast Submit in combination with `eth_sendBundle` to get both atomic multi-transaction execution and low-latency delivery.
+  </Card>
+  <Card title="Included in BSC Package" icon="box">
+    No separate fee—Fast Submit is part of the $1,250/month BSC Package alongside other core Block Builder services.
+  </Card>
+</CardGroup>
+
+## Integration Steps
+
+<Steps>
+  <Step title="Subscribe to the BSC Package">
+    Log in to your BlockRazor account at [https://blockrazor.io](https://blockrazor.io) and activate the BSC Package subscription. Once active, your API key will be granted Fast Submit access on the Block Builder endpoint.
+  </Step>
+  <Step title="Build and sign your transaction or bundle">
+    Construct your transaction locally using your preferred library (ethers.js, viem, web3.js, etc.) and sign it with your private key to produce a raw hex-encoded transaction string. If you are submitting a bundle, sign all transactions and assemble the `txs` array.
+  </Step>
+  <Step title="Submit to the Fast Submit endpoint">
+    Send your JSON-RPC payload to the BlockRazor Fast Submit endpoint. Include your API key in the `Authorization` header. The request format is identical to `eth_sendBundle` or `eth_sendRawTransaction` depending on your submission type.
+  </Step>
+  <Step title="Monitor inclusion">
+    After receiving the transaction hash or bundle hash in the response, poll `eth_getTransactionReceipt` (or use `eth_traceBundle` for bundles) to confirm on-chain inclusion.
+  </Step>
+</Steps>
+
+## Code Example
+
+The following example submits a raw transaction via Fast Submit using a direct POST to the BlockRazor Block Builder endpoint with the Fast Submit routing header enabled.
+
+<Tabs>
+  <Tab title="JavaScript (fetch)">
+    ```javascript
+    const endpoint = "https://blockrazor.io/api/block-builder/fast";
+
+    // Build and sign your transaction with ethers.js or viem
+    const signedTxHex = "0xSIGNED_TX_HEX";
+
+    const payload = {
+      jsonrpc: "2.0",
+      method: "eth_sendRawTransaction",
+      params: [signedTxHex],
+      id: 1,
+    };
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer YOUR_API_KEY",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    console.log("Transaction hash:", data.result);
+    ```
+  </Tab>
+  <Tab title="Bundle via Fast Submit">
+    ```javascript
+    const endpoint = "https://blockrazor.io/api/block-builder/fast";
+
+    const payload = {
+      jsonrpc: "2.0",
+      method: "eth_sendBundle",
+      params: [
+        {
+          txs: [
+            "0xSIGNED_TX_HEX_1",
+            "0xSIGNED_TX_HEX_2",
+          ],
+          blockNumber: "0xE4E1C0",
+          minTimestamp: 0,
+          maxTimestamp: 0,
+        },
+      ],
+      id: 1,
+    };
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer YOUR_API_KEY",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    console.log("Bundle hash:", data.result.bundleHash);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://blockrazor.io/api/block-builder/fast \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "eth_sendRawTransaction",
+        "params": ["0xSIGNED_TX_HEX"],
+        "id": 1
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+  For strategies with extreme latency requirements, combine Fast Submit with a [Dedicate Connection](/block-builder/dedicate-connection) to reserve dedicated bandwidth and eliminate shared-infrastructure contention entirely.
+</Tip>
+
+<Note>
+  Fast Submit is optimized for block inclusion latency. If your priority is protecting a transaction from the public mempool rather than minimizing latency, use [`eth_sendPrivateTransaction`](/block-builder/send-private-transaction) instead—or combine both approaches by using private bundle submission through the Fast Submit endpoint.
+</Note>

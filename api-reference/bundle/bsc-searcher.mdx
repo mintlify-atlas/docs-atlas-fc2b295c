@@ -1,0 +1,123 @@
+---
+title: "BSC Bundle Orderflow Auction API for Searchers"
+sidebarTitle: "BSC Searcher"
+description: "Submit competitive bids in BSC orderflow auctions using eth_sendMevBundle to win the right to backrun a signal transaction."
+---
+
+MEV searchers on BSC participate in an orderflow auction by submitting bundles via `eth_sendMevBundle` with an attached `bid`. The bid is a monetary offer denominated in wei—the searcher who submits the highest bid for a given signal transaction wins the exclusive right to have their bundle placed immediately after it in the target block. This auction model lets project builders monetize their orderflow while giving searchers a transparent, competitive mechanism to capture backrunning opportunities.
+
+<Info>
+  The Bundle service for BSC Searchers is available to all new registered users with no rate limits. For Private Mempool access to source signal transactions, see the [Pricing](https://blockrazor.io/#/pricing) page.
+</Info>
+
+## Endpoint
+
+```
+POST https://bundle.blockrazor.io/bsc
+```
+
+Authentication is performed via a Bearer token passed in the `Authorization` header.
+
+## How the Auction Works
+
+When a signal transaction enters the BlockRazor orderflow pipeline, an auction window opens for that transaction. Searchers monitor the mempool—typically via BlockRazor's Mempool Stream or Private Mempool feed—detect the signal transaction, construct a profitable backrun bundle, and submit it with a `bid` that represents the maximum amount they are willing to pay for the backrun slot.
+
+BlockRazor collects all bids for the same signal transaction and selects the highest bidder. The winning searcher's bundle is co-located with the signal transaction in the target block. Losing bids are discarded and incur no cost.
+
+<Tip>
+  Use BlockRazor's Private Mempool Stream to receive signal transactions before they propagate widely. Earlier detection gives your system more time to calculate an optimal bid and submit before the auction closes.
+</Tip>
+
+## Request
+
+The request follows the standard JSON-RPC 2.0 envelope. The single element of `params` is a bundle object containing all required searcher fields.
+
+### Bundle Parameters
+
+<ParamField body="txs" type="string[]" required>
+  An ordered array of signed raw transactions encoded as hex strings (each prefixed with `0x`). These are the searcher's backrun transactions that will execute immediately after the signal transaction if the bid wins.
+</ParamField>
+
+<ParamField body="blockNumber" type="string" required>
+  The target block number for bundle inclusion, expressed as a hex string (e.g., `"0xE4E1C0"`). The bundle is eligible for inclusion only in exactly this block.
+</ParamField>
+
+<ParamField body="signalTx" type="string" required>
+  The transaction hash of the signal transaction that the searcher intends to backrun. This identifies which auction slot is being bid on and determines the bundle's position within the block.
+</ParamField>
+
+<ParamField body="bid" type="string" required>
+  The bid amount in wei, expressed as a hex string or decimal string, that the searcher offers to win the orderflow auction for the specified `signalTx`. The highest bid across all competing searcher submissions wins the backrun slot.
+</ParamField>
+
+## Code Examples
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://bundle.blockrazor.io/bsc \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_sendMevBundle",
+    "params": [
+      {
+        "txs": ["0xBACKRUN_TX1", "0xBACKRUN_TX2"],
+        "blockNumber": "0xE4E1C0",
+        "signalTx": "0xSIGNAL_TX_HASH",
+        "bid": "0x2386F26FC10000"
+      }
+    ],
+    "id": 1
+  }'
+```
+
+```json JSON-RPC Request
+{
+  "jsonrpc": "2.0",
+  "method": "eth_sendMevBundle",
+  "params": [
+    {
+      "txs": [
+        "0xSIGNED_BACKRUN_TX_1",
+        "0xSIGNED_BACKRUN_TX_2"
+      ],
+      "blockNumber": "0xE4E1C0",
+      "signalTx": "0xSIGNAL_TX_HASH",
+      "bid": "0x2386F26FC10000"
+    }
+  ],
+  "id": 1
+}
+```
+</CodeGroup>
+
+## Response
+
+A successful submission returns a JSON-RPC response with a `bundleHash`. Receiving a bundle hash confirms that your bid has been registered in the auction—it does not guarantee inclusion, as a competing bid may be higher.
+
+<ResponseField name="bundleHash" type="string">
+  The unique hash identifying the submitted searcher bundle. You can use this hash to check the bundle's status and verify whether it was included in the target block.
+</ResponseField>
+
+```json Response Example
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "bundleHash": "0xdef789abc012..."
+  }
+}
+```
+
+## Searcher Workflow Summary
+
+1. **Monitor** — Subscribe to BlockRazor's Mempool Stream or Private Mempool feed to detect profitable signal transactions in real time.
+2. **Analyze** — Simulate the signal transaction's on-chain effect and calculate the expected profit from a backrun strategy.
+3. **Construct** — Build and sign the backrun transaction(s) that capture the identified opportunity.
+4. **Bid** — Submit the bundle with a `bid` high enough to outcompete other searchers, while remaining below the expected profit to maintain a positive expected value.
+5. **Verify** — After the target block is produced, check whether your `bundleHash` was included to confirm a successful auction win.
+
+<Note>
+  Bid only what the opportunity is worth. Overbidding reduces profitability, while underbidding risks losing the auction to a competing searcher. Implement simulation logic to estimate profit before setting the `bid` value.
+</Note>

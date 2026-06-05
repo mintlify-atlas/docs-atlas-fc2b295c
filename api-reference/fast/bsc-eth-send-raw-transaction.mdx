@@ -1,0 +1,173 @@
+---
+title: "BSC Fast Mode: eth_sendRawTransaction via BlockRazor"
+sidebarTitle: "BSC Fast Tx"
+description: "Submit BSC transactions in Fast mode using BlockRazor's acceleration network. Three variants available, including tip-free SendTx for new registered users."
+---
+
+BlockRazor's BSC Fast mode accelerates transaction submission by routing signed transactions through a globally distributed high-performance network with direct, low-latency connections to BSC validators. Compared to submitting through a standard public RPC node, Fast mode reduces the time from submission to block inclusion by bypassing conventional gossip propagation. New registered users receive a default throughput of **10 TPS**. Three submission variants are available depending on your use case and tip configuration.
+
+## Endpoint
+
+```
+POST https://fast.blockrazor.io/bsc
+```
+
+All requests must include your BlockRazor API token in the `Authorization` header.
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Your BlockRazor API token formatted as a Bearer token: `Bearer YOUR_AUTH_TOKEN`. Obtain your token from the [BlockRazor dashboard](https://blockrazor.io).
+</ParamField>
+
+## Submission Variants
+
+BlockRazor's BSC Fast endpoint supports three methods for transaction submission. Each trades off tip requirements and rate limits differently.
+
+<Tabs>
+  <Tab title="eth_sendRawTransaction">
+    The standard Fast mode submission path. Submit a signed transaction that includes a tip to BlockRazor's designated address embedded in the transaction itself. The tip incentivizes validator prioritization and maximizes the speed of block inclusion.
+
+    - **Method:** `eth_sendRawTransaction`
+    - **Tip required:** Yes — include a BNB transfer to BlockRazor's tip address
+    - **Default rate:** 10 TPS for new registered users
+  </Tab>
+  <Tab title="eth_sendRawTransaction v2">
+    An updated Fast mode submission API with enhanced routing and validator selection. Offers the same tip requirement as v1 but benefits from improved infrastructure for reduced latency. Recommended for new integrations.
+
+    - **Method:** `eth_sendRawTransaction` (v2 path)
+    - **Tip required:** Yes — include a BNB transfer to BlockRazor's tip address
+    - **Default rate:** 10 TPS for new registered users
+  </Tab>
+  <Tab title="Fast-Tx (SendTx)">
+    A simplified Fast mode variant that does **not** require a tip in the transaction. Ideal for users who want fast submission without modifying transaction structure to include a tip transfer. Newly registered users can access SendTx at no cost, subject to the usage limits below.
+
+    - **Method:** `eth_sendRawTransaction` (SendTx path)
+    - **Tip required:** No
+    - **Rate limit:** 10 txs per 5 seconds, 10 txs per day for new registered users
+    - **Subscription:** Fast-Tx subscription available at $500/month for higher limits
+  </Tab>
+</Tabs>
+
+## Request Parameters
+
+<ParamField body="jsonrpc" type="string" required>
+  JSON-RPC version string. Must be `"2.0"`.
+</ParamField>
+
+<ParamField body="method" type="string" required>
+  The RPC method for transaction submission: `"eth_sendRawTransaction"`.
+</ParamField>
+
+<ParamField body="params" type="array" required>
+  Array with one element — the signed transaction data.
+
+  <Expandable title="params[0] — signedTransactionData">
+    <ParamField body="signedTransactionData" type="string" required>
+      The RLP-encoded signed BSC transaction in `0x`-prefixed hexadecimal format. For `eth_sendRawTransaction` and v2, the transaction must include a BNB transfer to BlockRazor's designated tip address as one of its outputs. For SendTx (Fast-Tx), no tip transfer is required.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="id" type="integer">
+  Client-chosen request ID echoed in the response.
+</ParamField>
+
+## Response
+
+<ResponseField name="result" type="string">
+  The 32-byte transaction hash (`0x`-prefixed hex string) for the submitted transaction. Use `eth_getTransactionReceipt` to check confirmation status.
+</ResponseField>
+
+<ResponseField name="error" type="object">
+  Present when the submission fails.
+  <Expandable title="error fields">
+    <ResponseField name="code" type="integer">
+      JSON-RPC error code indicating the failure reason.
+    </ResponseField>
+    <ResponseField name="message" type="string">
+      Human-readable description of the error.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash eth_sendRawTransaction (cURL)
+curl -X POST https://fast.blockrazor.io/bsc \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_sendRawTransaction",
+    "params": ["0xSIGNED_TX_WITH_TIP"],
+    "id": 1
+  }'
+```
+
+```javascript ethers.js (with tip)
+import { ethers } from 'ethers';
+
+const provider = new ethers.JsonRpcProvider(
+  'https://fast.blockrazor.io/bsc',
+  undefined,
+  { headers: { Authorization: 'Bearer YOUR_AUTH_TOKEN' } }
+);
+
+const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+
+// Build a transaction that includes a BNB tip to BlockRazor's designated address.
+// Use a multicall or a contract that batches your primary action + the tip transfer.
+const tipAddress = 'BLOCKRAZOR_TIP_ADDRESS';
+const TIP_AMOUNT = ethers.parseEther('0.001'); // adjust based on network conditions
+
+// Example: direct tip transfer as the primary transaction (replace with your use case)
+const signedTx = await wallet.signTransaction({
+  to: tipAddress,
+  value: TIP_AMOUNT,
+  gasLimit: 21000n,
+  gasPrice: ethers.parseUnits('3', 'gwei'),
+  nonce: await provider.getTransactionCount(wallet.address),
+  chainId: 56, // BSC mainnet
+});
+
+// Submit via Fast mode
+const txHash = await provider.send('eth_sendRawTransaction', [signedTx]);
+console.log('Fast tx hash:', txHash);
+```
+
+```bash Fast-Tx / SendTx (no tip required)
+curl -X POST https://fast.blockrazor.io/bsc \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_sendRawTransaction",
+    "params": ["0xSIGNED_TX_NO_TIP_REQUIRED"],
+    "id": 1
+  }'
+```
+
+</CodeGroup>
+
+<Note>
+  For `eth_sendRawTransaction` and v2, you must include a BNB transfer to BlockRazor's designated tip address within the transaction. Transactions submitted without a tip via these methods will not be prioritized and may be rejected by the Fast mode routing layer.
+</Note>
+
+<Tip>
+  Use the **Fast-Tx (SendTx)** variant when you need fast submission without restructuring your transactions to include a tip. This is especially useful for simple transfer transactions where adding a separate tip output is not practical.
+</Tip>
+
+## Rate Limits
+
+| Variant                         | New User Limit                    | Subscribed Limit      |
+|---------------------------------|-----------------------------------|-----------------------|
+| `eth_sendRawTransaction`        | 10 TPS (default)                  | Custom                |
+| `eth_sendRawTransaction` v2     | 10 TPS (default)                  | Custom                |
+| Fast-Tx (SendTx)                | 10 txs / 5s, 10 txs / day        | $500/month (no limits)|
+
+<Info>
+  The Fast-Tx subscription service ($500/month) removes the daily and per-window rate limits for SendTx and enables high-throughput transaction propagation using BlockRazor's high-performance network. Visit the [BlockRazor pricing page](https://blockrazor.io/#/pricing) for details.
+</Info>

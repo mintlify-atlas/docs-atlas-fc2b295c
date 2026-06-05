@@ -1,0 +1,117 @@
+---
+title: "Public Mempool Stream for BSC — BlockRazor"
+sidebarTitle: "Public Mempool"
+description: "Subscribe to BlockRazor's high-performance BSC public mempool stream over WebSocket to monitor pending transactions in real time."
+---
+
+The Public Mempool stream delivers low-latency pushes of every pending transaction broadcast across the BSC network. By connecting to this WebSocket endpoint, your application receives a live feed of unconfirmed transactions the moment they appear in the mempool — giving you the edge needed for backrunning, copy trading, sniping, and other latency-sensitive strategies. The stream is priced at **$300 per stream per month**, with volume discounts available for multi-month subscriptions.
+
+<Info>
+  This stream covers the **public** BSC mempool — all transactions propagated through the peer-to-peer network. For transactions submitted through BlockRazor RPC that are not yet public, see the [Private Mempool](/api-reference/streams/mempool-private) stream.
+</Info>
+
+## Connection Details
+
+| Property  | Value                                                                        |
+| --------- | ---------------------------------------------------------------------------- |
+| Protocol  | WebSocket (WSS)                                                              |
+| Endpoint  | `wss://mempool.blockrazor.io/bsc/public?auth=YOUR_AUTH_TOKEN`               |
+| Pricing   | $300 / stream / month                                                        |
+| Chain     | BNB Smart Chain (BSC)                                                        |
+
+<Note>
+  Replace `YOUR_AUTH_TOKEN` with the API token issued in your BlockRazor dashboard. Keep this token secret — it authenticates your subscription.
+</Note>
+
+## Authentication
+
+Pass your auth token as a query parameter when opening the WebSocket connection:
+
+```bash
+wss://mempool.blockrazor.io/bsc/public?auth=YOUR_AUTH_TOKEN
+```
+
+No additional handshake or message is required after the connection is established. The server begins streaming pending transactions immediately upon successful authentication.
+
+## Code Example
+
+The example below uses the `ws` package for Node.js to connect and log every incoming pending transaction:
+
+```javascript
+const WebSocket = require('ws');
+
+const ws = new WebSocket('wss://mempool.blockrazor.io/bsc/public?auth=YOUR_AUTH_TOKEN');
+
+ws.on('open', () => console.log('Connected to Public Mempool'));
+
+ws.on('message', (data) => {
+  const tx = JSON.parse(data);
+  console.log('Pending tx:', tx.hash, 'from:', tx.from);
+});
+
+ws.on('error', (err) => console.error('Error:', err));
+```
+
+<Tip>
+  Parse `tx.gasPrice` and compare it against your target thresholds to quickly filter for high-priority transactions without processing every message downstream.
+</Tip>
+
+## Response Fields
+
+Each WebSocket message is a JSON object representing a single pending transaction. The fields are described below.
+
+<ResponseField name="hash" type="string" required>
+  The transaction hash — a 32-byte hex string uniquely identifying this pending transaction on the BSC network (e.g. `0xabc123...`).
+</ResponseField>
+
+<ResponseField name="from" type="string" required>
+  The sender's Ethereum-compatible address that signed and originated the transaction (e.g. `0xDe0B295...`).
+</ResponseField>
+
+<ResponseField name="to" type="string" required>
+  The recipient address or contract address being called. May be `null` for contract-creation transactions.
+</ResponseField>
+
+<ResponseField name="value" type="string" required>
+  The amount of BNB transferred, expressed as a hex-encoded integer in **wei** (e.g. `"0x16345785d8a0000"` for 0.1 BNB).
+</ResponseField>
+
+<ResponseField name="gas" type="string" required>
+  The gas limit set by the sender, as a hex-encoded integer (e.g. `"0x5208"` for 21000 gas).
+</ResponseField>
+
+<ResponseField name="gasPrice" type="string" required>
+  The gas price the sender is willing to pay, expressed as a hex-encoded integer in **wei** (e.g. `"0x3B9ACA00"` for 1 Gwei).
+</ResponseField>
+
+<ResponseField name="data" type="string" required>
+  The ABI-encoded calldata for the transaction. Empty string (`"0x"`) for simple BNB transfers; contains function selector and arguments for contract calls.
+</ResponseField>
+
+## Example Message
+
+```json
+{
+  "hash": "0xf4a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
+  "from": "0xDe0B295669a9FD93d5F28D9Ec85E40f4cb697BA",
+  "to": "0x10ED43C718714eb63d5aA57B78B54704E256024E",
+  "value": "0x0",
+  "gas": "0x493E0",
+  "gasPrice": "0x12A05F200",
+  "data": "0x38ed173900000000000000000000000000000000000000000000000000038d7ea4c68000"
+}
+```
+
+## Pricing & Discounts
+
+| Subscription Period | Discount |
+| ------------------- | -------- |
+| 1 month             | —        |
+| 3 months            | 5% off   |
+| 6 months            | 10% off  |
+| 9 months            | 15% off  |
+| 12 months           | 20% off  |
+
+<Info>
+  The Public Mempool stream is also included in the **BSC Package** bundle at $1,250/month alongside Block Stream, Node Stream, Call Bundle, Fast Submit, and Tx Trace. See the [Pricing](/pricing) page for details.
+</Info>

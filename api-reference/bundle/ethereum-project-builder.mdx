@@ -1,0 +1,138 @@
+---
+title: "Ethereum Bundle API for Project Builders — eth_sendBundle"
+sidebarTitle: "Ethereum Project Builder"
+description: "Submit atomic transaction bundles on Ethereum as a project builder using eth_sendBundle with flexible timestamp and revert controls."
+---
+
+Project builders on Ethereum can use the `eth_sendBundle` method to submit an ordered group of signed transactions for atomic inclusion in a target block. Unlike standard transaction submission, bundles guarantee that all included transactions execute together in sequence—if any transaction fails, the entire bundle is excluded from the block. Optional timestamp bounds and a revert-allowlist give builders fine-grained control over when a bundle is valid and which transactions are permitted to revert without invalidating the rest.
+
+<Info>
+  The Ethereum Bundle service is available to all new registered users at no cost. See [Pricing](https://blockrazor.io/#/pricing) for details on subscription tiers and advanced features.
+</Info>
+
+## Endpoint
+
+```
+POST https://bundle.blockrazor.io/ethereum
+```
+
+Authentication is performed via a Bearer token passed in the `Authorization` header.
+
+## Request
+
+The request follows the standard JSON-RPC 2.0 envelope. The single element of `params` is a bundle object with the fields described below.
+
+### Bundle Parameters
+
+<ParamField body="txs" type="string[]" required>
+  An ordered array of signed raw transactions encoded as hex strings (each prefixed with `0x`). Transactions execute sequentially and atomically in the order provided. A revert in any transaction causes the entire bundle to be dropped, unless the transaction's hash is listed in `revertingTxHashes`.
+</ParamField>
+
+<ParamField body="blockNumber" type="string" required>
+  The target block number for bundle inclusion, expressed as a hex string (e.g., `"0x12A05F0"`). The bundle is only eligible for the specified block and is discarded if that block passes without inclusion.
+</ParamField>
+
+<ParamField body="minTimestamp" type="integer">
+  Optional. The minimum Unix timestamp (in seconds) at which the bundle becomes valid. If the target block's timestamp is earlier than this value, the bundle will not be included. Useful for time-gated strategies.
+</ParamField>
+
+<ParamField body="maxTimestamp" type="integer">
+  Optional. The maximum Unix timestamp (in seconds) beyond which the bundle is no longer valid. If the target block's timestamp exceeds this value, the bundle will not be included. Combine with `minTimestamp` to define a precise validity window.
+</ParamField>
+
+<ParamField body="revertingTxHashes" type="string[]">
+  Optional. An array of transaction hashes (from within `txs`) that are permitted to revert without causing the entire bundle to be discarded. This allows partial-revert tolerance for multi-step strategies where some steps are best-effort.
+</ParamField>
+
+## Code Examples
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://bundle.blockrazor.io/ethereum \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_sendBundle",
+    "params": [
+      {
+        "txs": ["0xSIGNED_TX_1", "0xSIGNED_TX_2"],
+        "blockNumber": "0x12A05F0",
+        "minTimestamp": 1710000000,
+        "maxTimestamp": 1710003600,
+        "revertingTxHashes": ["0xREVERT_ALLOWED_TX_HASH"]
+      }
+    ],
+    "id": 1
+  }'
+```
+
+```json JSON-RPC Request
+{
+  "jsonrpc": "2.0",
+  "method": "eth_sendBundle",
+  "params": [
+    {
+      "txs": [
+        "0xSIGNED_RAW_TX_1",
+        "0xSIGNED_RAW_TX_2"
+      ],
+      "blockNumber": "0x12A05F0",
+      "minTimestamp": 1710000000,
+      "maxTimestamp": 1710003600,
+      "revertingTxHashes": [
+        "0xREVERT_ALLOWED_TX_HASH"
+      ]
+    }
+  ],
+  "id": 1
+}
+```
+
+```json Minimal Request (Required Fields Only)
+{
+  "jsonrpc": "2.0",
+  "method": "eth_sendBundle",
+  "params": [
+    {
+      "txs": [
+        "0xSIGNED_RAW_TX_1",
+        "0xSIGNED_RAW_TX_2"
+      ],
+      "blockNumber": "0x12A05F0"
+    }
+  ],
+  "id": 1
+}
+```
+</CodeGroup>
+
+## Response
+
+A successful submission returns a `bundleHash` that uniquely identifies the submitted bundle within BlockRazor's infrastructure.
+
+<ResponseField name="bundleHash" type="string">
+  A unique hash representing the submitted bundle. Retain this value to track bundle inclusion status or to reference the bundle in tracing and analytics tools.
+</ResponseField>
+
+```json Response Example
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "bundleHash": "0x9f8e7d6c5b4a..."
+  }
+}
+```
+
+## Timestamp Window Usage
+
+The `minTimestamp` and `maxTimestamp` fields let project builders create bundles that are only valid during a specific time range. This is particularly useful when a strategy depends on off-chain state (such as an oracle price) that may only be favorable for a limited time window.
+
+<Note>
+  Ethereum block timestamps are set by the block proposer and may not match wall clock time exactly. Build in a small buffer around your target window to account for minor timestamp variance between consecutive blocks.
+</Note>
+
+<Tip>
+  Use `revertingTxHashes` to mark any approval or setup transactions in your bundle that may already be fulfilled on-chain. This prevents an already-approved transaction from invalidating an otherwise profitable bundle.
+</Tip>

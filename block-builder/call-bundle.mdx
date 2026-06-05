@@ -1,0 +1,178 @@
+---
+title: "eth_callBundle: Simulate a Bundle Before Submission"
+sidebarTitle: "Call Bundle"
+description: "Simulate a bundle of transactions against a specific BSC block state using eth_callBundle to validate profitability and correctness before live submission."
+---
+
+The `eth_callBundle` method allows you to dry-run a bundle of transactions against a specified block's state without broadcasting anything to the network. The Block Builder executes each transaction in the bundle sequentially against the requested chain state and returns detailed results per transaction—including gas usage, return data, and any revert reasons. This is the safest and most efficient way to validate that a bundle will behave as expected and generate the intended profit before spending gas on a live submission.
+
+<Info>
+  `eth_callBundle` is included in the **BSC Package** subscription at **$1,250/month**, which also includes Public Mempool, Block Stream, Node Stream, Fast Submit, and Tx Trace. See the [Pricing](/pricing) page for full details.
+</Info>
+
+## Why Simulate Before Submitting?
+
+MEV strategies are sensitive to exact block state. A bundle that was profitable when built may revert or become unprofitable if market conditions shift by even one block. Running `eth_callBundle` before every live submission lets you:
+
+- **Confirm profitability**: Verify that the expected net gain exceeds gas costs under current on-chain conditions.
+- **Catch reverts early**: Identify which transaction in the bundle will revert and why, without paying gas.
+- **Iterate quickly**: Adjust parameters and re-simulate in milliseconds without waiting for blocks to be mined.
+- **Avoid wasted submissions**: Eliminate unprofitable or broken bundles before they consume Block Builder capacity.
+
+## Request Format
+
+Send a standard JSON-RPC 2.0 `POST` request with the method `eth_callBundle`.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "eth_callBundle",
+  "params": [
+    {
+      "txs": ["0xSIGNED_TX_HEX"],
+      "blockNumber": "0xE4E1C0",
+      "stateBlockNumber": "latest"
+    }
+  ],
+  "id": 1
+}
+```
+
+## Parameters
+
+<ParamField body="txs" type="array" required>
+  An ordered array of signed, RLP-encoded transaction hex strings (prefixed with `0x`) to simulate. Transactions are executed in the order provided, with each subsequent transaction seeing the state changes produced by previous ones.
+</ParamField>
+
+<ParamField body="blockNumber" type="string" required>
+  The target block number against which the bundle will be simulated, expressed as a hexadecimal string (e.g., `"0xE4E1C0"`). This determines the block context (base fee, timestamp, coinbase) used during simulation.
+</ParamField>
+
+<ParamField body="stateBlockNumber" type="string" required>
+  The block whose world state is used as the starting point for simulation. Accepts `"latest"` to use the current chain head, or a specific hexadecimal block number. Using `"latest"` ensures simulation reflects the most up-to-date account balances and contract storage.
+</ParamField>
+
+## Response Format
+
+The response contains a `bundleHash` for the simulated bundle and a `results` array with one entry per transaction in the bundle.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "bundleHash": "0xSIMULATED_BUNDLE_HASH",
+    "results": [
+      {
+        "txHash": "0xTX_HASH_1",
+        "gasUsed": 21000,
+        "returnData": "0x",
+        "error": null
+      }
+    ]
+  }
+}
+```
+
+<ResponseField name="result.bundleHash" type="string">
+  The hash of the simulated bundle. This is a deterministic identifier based on the bundle contents and can be used for reference.
+</ResponseField>
+
+<ResponseField name="result.results" type="array">
+  An array of simulation results, one object per transaction in the bundle, in submission order.
+</ResponseField>
+
+<ResponseField name="result.results[].txHash" type="string">
+  The hash of the individual transaction within the bundle.
+</ResponseField>
+
+<ResponseField name="result.results[].gasUsed" type="integer">
+  The amount of gas consumed by this transaction during simulation.
+</ResponseField>
+
+<ResponseField name="result.results[].returnData" type="string">
+  The ABI-encoded return data from the transaction's top-level call, prefixed with `0x`. Empty (`"0x"`) for plain ETH transfers.
+</ResponseField>
+
+<ResponseField name="result.results[].error" type="string | null">
+  If the transaction reverted, this field contains the revert reason string. `null` if the transaction succeeded.
+</ResponseField>
+
+## Example Integration
+
+<Tabs>
+  <Tab title="JavaScript (fetch)">
+    ```javascript
+    const endpoint = "https://blockrazor.io/api/block-builder";
+
+    const payload = {
+      jsonrpc: "2.0",
+      method: "eth_callBundle",
+      params: [
+        {
+          txs: ["0xSIGNED_TX_HEX"],
+          blockNumber: "0xE4E1C0",
+          stateBlockNumber: "latest",
+        },
+      ],
+      id: 1,
+    };
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer YOUR_API_KEY",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const { result } = await response.json();
+
+    for (const tx of result.results) {
+      if (tx.error) {
+        console.error(`TX ${tx.txHash} reverted: ${tx.error}`);
+      } else {
+        console.log(`TX ${tx.txHash} used ${tx.gasUsed} gas`);
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://blockrazor.io/api/block-builder \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "eth_callBundle",
+        "params": [{
+          "txs": ["0xSIGNED_TX_HEX"],
+          "blockNumber": "0xE4E1C0",
+          "stateBlockNumber": "latest"
+        }],
+        "id": 1
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+## Recommended Simulation Workflow
+
+<Steps>
+  <Step title="Build your bundle off-chain">
+    Construct and sign all transactions locally. Do not submit to the network yet.
+  </Step>
+  <Step title="Fetch the current block number">
+    Call `eth_blockNumber` to get the latest block. Set `blockNumber` to `latestBlock + 1` (your intended target) and `stateBlockNumber` to `"latest"`.
+  </Step>
+  <Step title="Call eth_callBundle and inspect results">
+    Submit the simulation request. Check every entry in `results` for non-null `error` fields. If any transaction reverted, adjust your bundle and re-simulate.
+  </Step>
+  <Step title="Verify net profitability">
+    Sum the `gasUsed` values across all results and multiply by the current base fee plus tip to compute total gas cost. Confirm that your expected revenue exceeds this cost.
+  </Step>
+  <Step title="Submit via eth_sendBundle">
+    Once simulation confirms the bundle is profitable and revert-free, submit it live using [`eth_sendBundle`](/block-builder/send-bundle).
+  </Step>
+</Steps>

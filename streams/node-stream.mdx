@@ -1,0 +1,97 @@
+---
+title: "BlockRazor Node Stream: Real-Time World State Sync"
+sidebarTitle: "Node Stream"
+description: "Sync your application's world state with BlockRazor's full nodes in real time, or provision a dedicated BSC node for maximum control and lowest latency."
+---
+
+BlockRazor Node Stream enables your infrastructure to stay continuously synchronized with the blockchain's world state by peering directly with BlockRazor's high-performance full node network. Rather than polling RPC endpoints for state updates, Node Stream maintains a persistent, low-latency data connection so that your application's local view of account balances, contract storage, and chain head is always current. This is especially valuable for trading systems, arbitrage bots, and analytics platforms that cannot tolerate stale state.
+
+## Synchronization Options
+
+BlockRazor offers two Node Stream configurations depending on your operational requirements: shared full node synchronization and a fully dedicated node instance.
+
+<CardGroup cols={2}>
+  <Card title="Full Node Synchronization" icon="server">
+    Synchronize your local node with BlockRazor's distributed full node network over an optimized enode connection. Benefit from BlockRazor's global node infrastructure without managing your own hardware.
+  </Card>
+  <Card title="Dedicated Node" icon="microchip">
+    Provision an exclusive BSC full node managed by BlockRazor. Receive a private enode credential and connect your infrastructure directly — no resource sharing with other clients.
+    **$800 / enode / month**
+  </Card>
+</CardGroup>
+
+<Info>
+  Node Stream is currently available for BSC (BNB Smart Chain). Full Node Synchronization is ideal for teams that already operate their own nodes and want to minimize peer-discovery overhead. Dedicated Node is best for teams requiring guaranteed resource allocation and isolation.
+</Info>
+
+## Setting Up a Dedicated Node
+
+Follow these steps to provision and connect a Dedicated Node on BSC:
+
+<Steps>
+  <Step title="Request via Dashboard">
+    Log in to the BlockRazor dashboard and navigate to the **Node Stream** section. Submit a Dedicated Node request by selecting your preferred region and specifying any configuration requirements. Your request is reviewed and provisioned by the BlockRazor infrastructure team.
+  </Step>
+  <Step title="Receive enode Credentials">
+    Once provisioned, you will receive a unique enode identifier in the format `enode://NODE_PUBLIC_KEY@HOST:PORT`. This credential is exclusive to your account and grants your node direct access to BlockRazor's dedicated BSC instance. Store this credential securely — it identifies your authorized peering connection.
+  </Step>
+  <Step title="Configure Your Node to Sync">
+    Add the BlockRazor enode as a static peer or bootnode in your local BSC node configuration. Your node will establish a direct, persistent peering session and begin synchronizing state immediately.
+
+    ```bash
+    geth --bootnodes enode://YOUR_ENODE_ID@YOUR_HOST:PORT
+    ```
+
+    For persistent static peer configuration, add the enode to your `static-nodes.json` file:
+
+    ```json
+    [
+      "enode://YOUR_ENODE_ID@YOUR_HOST:PORT"
+    ]
+    ```
+
+    Restart your `geth` process after updating the configuration. You can verify the connection is active with:
+
+    ```bash
+    geth attach --exec "admin.peers"
+    ```
+
+    A successful output will list the BlockRazor enode among your active peers, confirming that synchronization is live.
+  </Step>
+</Steps>
+
+## Why Node Stream?
+
+Relying on public RPC endpoints introduces polling delays, rate limits, and shared infrastructure bottlenecks. Node Stream removes these constraints entirely.
+
+<CardGroup cols={2}>
+  <Card title="Lowest Possible Latency" icon="gauge-high">
+    Direct enode peering means your node receives block and state updates through the same gossip layer as validators — with no RPC intermediary adding overhead.
+  </Card>
+  <Card title="Always-Current World State" icon="earth-americas">
+    Your local node maintains a real-time synchronized copy of the blockchain state, so reads are local and instantaneous rather than remote and rate-limited.
+  </Card>
+  <Card title="No Rate Limits" icon="infinity">
+    Unlike shared RPC endpoints, an enode connection has no artificial request caps. Your node syncs as fast as the network allows.
+  </Card>
+  <Card title="Infrastructure Isolation" icon="shield">
+    The Dedicated Node option ensures no resource contention with other clients, giving you predictable, consistent synchronization performance.
+  </Card>
+</CardGroup>
+
+## Pricing
+
+| Option | Chain | Price |
+|---|---|---|
+| Full Node Synchronization | BSC | Included in BSC Package ($1,250/month) |
+| Dedicated Node | BSC | $800 / enode / month |
+
+<Note>
+  Node Stream (Full Node Synchronization) is included in the BlockRazor BSC Package alongside Public Mempool, Block Stream, Call Bundle, Fast Submit, and Tx Trace — at a combined price of $1,250/month. See the [Pricing](/pricing) page for full package details.
+</Note>
+
+## Related Streams
+
+Node Stream pairs naturally with other BlockRazor data products. Once your world state is synchronized, combine it with real-time pending transaction data for a complete picture of both confirmed and unconfirmed chain activity:
+
+- [Public Mempool Stream](/api-reference/streams/mempool-public) — Monitor pending transactions before they are confirmed, using your synchronized world state to evaluate transaction context and profitability in real time.

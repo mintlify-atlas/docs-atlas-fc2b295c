@@ -1,0 +1,115 @@
+---
+title: "BlockRazor for Algorithmic and Quantitative Trading"
+sidebarTitle: "Algorithmic Trading"
+description: "Keep your world state current, optimise gas costs in real time, and monitor confirmed signals with BlockRazor's low-latency data streams for quant systems."
+---
+
+Algorithmic and quantitative trading systems are only as good as the data they run on. A stale world state means your model is pricing against outdated liquidity. A miscalibrated gas estimate means your order either fails to land or bleeds unnecessary cost. A missed on-chain signal means a position enters late. BlockRazor's suite of high-performance data streams — Node Stream, Network Fee Stream, and Block Stream — addresses all three problems simultaneously, giving quant systems the real-time, low-latency data infrastructure they need to execute with precision.
+
+## Why quant and algo systems choose BlockRazor
+
+<CardGroup cols={3}>
+  <Card title="Node Stream" icon="server" href="/streams/node-stream">
+    Synchronise directly with a full node to keep your in-memory world state up to date with minimum latency — the foundation of any price or liquidity model.
+  </Card>
+  <Card title="Network Fee Stream" icon="gauge-high" href="/streams/network-fee-stream">
+    Receive real-time gas price, priority fee, and tip data derived from recent block history so your system always bids the right fee at the right moment.
+  </Card>
+  <Card title="Block Stream" icon="cube" href="/streams/block-stream">
+    Get low-latency pushes of confirmed block data to monitor signal transactions, track strategy positions, and trigger post-execution logic.
+  </Card>
+</CardGroup>
+
+## Core benefits
+
+<Steps>
+  <Step title="Synchronised world state via Node Stream">
+    Node Stream gives your system low-latency, real-time synchronisation with a BlockRazor-managed full node. Rather than polling a public RPC and accepting unpredictable lag, your model subscribes to a continuous feed of account, slot, and state updates. This keeps your internal representation of pool reserves, oracle prices, and account balances current at all times — the prerequisite for accurate pricing and position management.
+  </Step>
+  <Step title="Dynamic gas optimisation via Network Fee Stream">
+    Submitting transactions at the wrong gas price costs you in one of two ways: too low and your order misses the block; too high and you erode the profit margin of every trade. The Network Fee Stream pushes gas price, EIP-1559 base fee, priority fee, and Solana tip data in real time, calibrated against recent block history. Your execution layer can consume this feed directly and set fees adaptively rather than relying on static estimates.
+  </Step>
+  <Step title="Confirmed signal monitoring via Block Stream">
+    Block Stream delivers low-latency block data the moment a block is confirmed. For a quant system, this is the trigger layer: detect that a hedging transaction has landed, confirm that a limit order filled, observe a large on-chain event that changes your model's assumptions, or track the execution of a competing strategy. Block Stream provides this without the delay and variability of public node subscriptions.
+  </Step>
+</Steps>
+
+## Chain and service availability
+
+| Stream             | BSC | Ethereum | Solana | Base |
+|--------------------|:---:|:--------:|:------:|:----:|
+| Node Stream        | ✓   | —        | —      | —    |
+| Network Fee Stream | ✓   | —        | ✓      | —    |
+| Block Stream       | ✓   | —        | —      | ✓    |
+
+<Info>
+  The BSC Package subscription ($1,250/month) bundles Node Stream, Public Mempool, Block Stream, Call Bundle, Fast Submit, and Tx Trace — a single plan that covers the full data and execution stack most quant systems need on BSC.
+</Info>
+
+## Integration patterns
+
+<Tabs>
+  <Tab title="Node Stream">
+    Subscribe to the Node Stream WebSocket to receive real-time state updates from a BlockRazor full node. Use the provided enode endpoint to peer directly.
+
+    ```javascript
+    const ws = new WebSocket(
+      "wss://stream.blockrazor.io/bsc/<api-key>/node-stream"
+    );
+
+    ws.on("message", (data) => {
+      const update = JSON.parse(data);
+      // Apply state delta to your internal world-state model
+      worldState.apply(update);
+    });
+    ```
+  </Tab>
+  <Tab title="Network Fee Stream">
+    Poll or subscribe to the Network Fee Stream to drive your gas estimation logic. The feed updates after each block and includes multiple percentile estimates.
+
+    ```javascript
+    const ws = new WebSocket(
+      "wss://stream.blockrazor.io/bsc/<api-key>/fee-stream"
+    );
+
+    ws.on("message", (data) => {
+      const { gasPrice, baseFee, priorityFee } = JSON.parse(data);
+      // Update your transaction builder with the latest fee estimates
+      txBuilder.setFees({ gasPrice, baseFee, priorityFee });
+    });
+    ```
+  </Tab>
+  <Tab title="Block Stream">
+    Subscribe to the Block Stream to trigger post-block logic in your strategy engine the moment a new block is confirmed.
+
+    ```javascript
+    const ws = new WebSocket(
+      "wss://stream.blockrazor.io/bsc/<api-key>/block-stream"
+    );
+
+    ws.on("message", (data) => {
+      const block = JSON.parse(data);
+      // Scan confirmed transactions for strategy-relevant events
+      strategy.onBlock(block);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+  Run Node Stream and Network Fee Stream together as a pair: Node Stream keeps your pricing model accurate, while Network Fee Stream ensures every order you submit arrives with a competitive fee. Together they eliminate the two most common sources of slippage in algorithmic execution.
+</Tip>
+
+## Recommended services
+
+<CardGroup cols={3}>
+  <Card title="Node Stream" icon="server" href="/streams/node-stream">
+    Real-time full-node state synchronisation for accurate world-state modelling on BSC.
+  </Card>
+  <Card title="Network Fee Stream" icon="gauge-high" href="/streams/network-fee-stream">
+    Live gas price and priority fee data for adaptive fee setting on BSC and Solana.
+  </Card>
+  <Card title="Block Stream" icon="cube" href="/streams/block-stream">
+    Low-latency confirmed block data for signal monitoring and post-execution logic on BSC and Base.
+  </Card>
+</CardGroup>

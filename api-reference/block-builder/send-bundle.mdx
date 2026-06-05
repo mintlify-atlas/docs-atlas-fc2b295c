@@ -1,0 +1,128 @@
+---
+title: "Send Bundle to BSC Block Builder — eth_sendBundle"
+sidebarTitle: "Send Bundle"
+description: "Submit an atomically-executed transaction bundle to BlockRazor's BSC Block Builder for direct validator inclusion via eth_sendBundle."
+---
+
+The `eth_sendBundle` method lets you submit an ordered set of signed transactions directly to BlockRazor's BSC Block Builder. Because BlockRazor's Block Builder has achieved a cumulative block production rate of 37% on BSC—ranking first chain-wide—bundles submitted here have a high probability of inclusion without competing through the public mempool. Transactions in a bundle execute atomically in sequence: if any transaction reverts, the entire bundle is excluded from the block unless the reverting transaction is explicitly allowed.
+
+<Info>
+  `eth_sendBundle` is free for all new registered users on BSC with no rate limits. No subscription is required to get started. See [Pricing](https://blockrazor.io/#/pricing) for details on the BSC Package and advanced builder features.
+</Info>
+
+## Endpoint
+
+```
+POST https://builder.blockrazor.io/bsc
+```
+
+Authentication is performed via a Bearer token passed in the `Authorization` header.
+
+## Request
+
+The request follows the standard JSON-RPC 2.0 envelope. The single element of `params` is a bundle configuration object.
+
+### Bundle Parameters
+
+<ParamField body="txs" type="string[]" required>
+  An ordered array of signed raw transactions encoded as hex strings (each prefixed with `0x`). Transactions are executed in the order provided. The atomicity guarantee means all transactions land together or none do.
+</ParamField>
+
+<ParamField body="blockNumber" type="string" required>
+  The target block number for bundle inclusion, expressed as a hex string (e.g., `"0xE4E1C0"`). The bundle is only eligible for this exact block and is automatically expired if the block passes.
+</ParamField>
+
+<ParamField body="minTimestamp" type="integer">
+  Optional. The minimum Unix timestamp (in seconds) before which the bundle should not be included. If the target block's timestamp is earlier than this value, the bundle will be skipped.
+</ParamField>
+
+<ParamField body="maxTimestamp" type="integer">
+  Optional. The maximum Unix timestamp (in seconds) after which the bundle is no longer valid. If the target block's timestamp exceeds this value, the bundle will not be included.
+</ParamField>
+
+## Code Examples
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://builder.blockrazor.io/bsc \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_sendBundle",
+    "params": [
+      {
+        "txs": ["0xSIGNED_TX1", "0xSIGNED_TX2"],
+        "blockNumber": "0xE4E1C0"
+      }
+    ],
+    "id": 1
+  }'
+```
+
+```json JSON-RPC Request
+{
+  "jsonrpc": "2.0",
+  "method": "eth_sendBundle",
+  "params": [
+    {
+      "txs": [
+        "0xSIGNED_TX1",
+        "0xSIGNED_TX2"
+      ],
+      "blockNumber": "0xE4E1C0"
+    }
+  ],
+  "id": 1
+}
+```
+
+```json JSON-RPC Request (with Timestamps)
+{
+  "jsonrpc": "2.0",
+  "method": "eth_sendBundle",
+  "params": [
+    {
+      "txs": [
+        "0xSIGNED_TX1",
+        "0xSIGNED_TX2"
+      ],
+      "blockNumber": "0xE4E1C0",
+      "minTimestamp": 1710000000,
+      "maxTimestamp": 1710003600
+    }
+  ],
+  "id": 1
+}
+```
+</CodeGroup>
+
+## Response
+
+A successful submission returns a `bundleHash` that uniquely identifies your bundle within the Block Builder. Retain this value to trace bundle execution via [`eth_traceBundle`](/api-reference/block-builder/trace-bundle).
+
+<ResponseField name="bundleHash" type="string">
+  A unique hash identifying the submitted bundle. Use this with `eth_traceBundle` to retrieve detailed execution traces and confirm inclusion in the target block.
+</ResponseField>
+
+```json Response Example
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "bundleHash": "0x7f3a9c2e1d4b..."
+  }
+}
+```
+
+## Block Builder Advantage
+
+BlockRazor's Block Builder is deployed in multiple regions worldwide with low-latency communication links to BSC validators. Its multi-algorithm block construction maximizes block value, which incentivizes validators to prefer BlockRazor-built blocks. Submitting via the Block Builder endpoint bypasses the public mempool entirely, providing MEV protection and faster finality compared to standard `eth_sendRawTransaction`.
+
+<Note>
+  To simulate your bundle before committing to on-chain submission, use [`eth_callBundle`](/api-reference/block-builder/call-bundle). Simulation lets you verify gas usage and catch reverts without spending gas or revealing your strategy to the mempool.
+</Note>
+
+<Tip>
+  Combine `minTimestamp` and `maxTimestamp` to create time-bounded bundles. This is useful for strategies that are only profitable within a specific time window, such as those dependent on external oracle updates.
+</Tip>

@@ -1,0 +1,94 @@
+---
+title: "BlockRazor for Individual Traders: Free Tier Guide"
+sidebarTitle: "Individual Trader"
+description: "MEV protection, fast confirmations, and gasless onboarding from day one — BlockRazor's free tier gives individual traders professional infrastructure."
+---
+
+You don't need to run a trading firm or a search operation to benefit from professional transaction infrastructure. Individual traders on BlockRazor get access to the same MEV-protected submission paths, global acceleration network, and atomic bundle execution that institutional users rely on — at no cost from the moment they register. Whether you're swapping tokens, minting NFTs, or executing a time-sensitive trade, BlockRazor's free tier gives you the tools to compete on equal footing.
+
+## What you get from day one
+
+Every new BlockRazor account unlocks multi-mode transaction submission across Solana, BSC, Ethereum, and Base with zero upfront cost and no credit card required. The four modes available immediately after registration are:
+
+<CardGroup cols={2}>
+  <Card title="RPC — MEV Protection" icon="shield-halved" href="/transaction-submission/rpc">
+    Use `eth_sendRawTransaction` through BlockRazor's protected relay on BSC and Ethereum. Your pending transactions stay private from searchers until they land on-chain.
+  </Card>
+  <Card title="Fast — Global Acceleration" icon="bolt" href="/transaction-submission/fast">
+    Route transactions through BlockRazor's high-performance global network for the fastest possible confirmations on Solana, BSC, and Base.
+  </Card>
+  <Card title="Bundle — Atomic Execution" icon="layer-group" href="/transaction-submission/bundle">
+    Submit bundles on BSC and Ethereum to execute your transaction in the same block as a target transaction — useful for sniping or reacting to on-chain events.
+  </Card>
+  <Card title="Block Builder — Direct Inclusion" icon="cube" href="/block-builder/overview">
+    Submit private transactions and bundles directly to the BlockRazor BSC Block Builder, which has a 37% cumulative block production rate on BSC.
+  </Card>
+</CardGroup>
+
+## Core benefits for individual traders
+
+<Steps>
+  <Step title="MEV protection — stop leaving money on the table">
+    When you submit a transaction through a standard public RPC, it sits in the public mempool where searchers can see it and front-run or sandwich it before it confirms. BlockRazor's RPC mode keeps your transaction private until block inclusion, preventing this class of value extraction entirely. For high-value swaps and time-sensitive trades, this protection can be worth more than the cost of any subscription.
+  </Step>
+  <Step title="Faster confirmations with the global acceleration network">
+    Fast mode connects to BlockRazor's distributed global relay and routes your transaction directly to highly staked validators. On Solana you get up to 3 TPS by default; on BSC and Base up to 10 TPS. For new registered users who want Fast mode without including a tip in the transaction, `SendTx` is available at 10 transactions per 5 seconds and 10 transactions per day — enough for active individual trading.
+  </Step>
+  <Step title="Gas Sponsor — trade before you hold gas">
+    Gas Sponsor lets a platform or dApp cover your gas fee, meaning you can execute your first transaction on a new chain without needing to bridge native tokens first. As an individual trader, look for dApps and wallets that have integrated BlockRazor Gas Sponsor to enjoy this benefit automatically.
+  </Step>
+  <Step title="Upgrade only when you need to">
+    The free tier is designed to cover the needs of most individual traders indefinitely. If your volume or strategy complexity grows, BlockRazor's subscription services scale with you — from individual service add-ons to multi-chain packages — with discounts of up to 20% for longer commitment periods.
+  </Step>
+</Steps>
+
+## Free tier limits at a glance
+
+| Mode         | Chains                      | Default Limit                          |
+|--------------|-----------------------------|----------------------------------------|
+| RPC          | BSC, Ethereum               | Unlimited                              |
+| RPC          | Base                        | 1 transaction / 5 seconds              |
+| Fast         | Solana                      | 3 TPS                                  |
+| Fast         | BSC, Base                   | 10 TPS                                 |
+| Fast (SendTx)| BSC                         | 10 txs / 5 seconds · 10 txs / day     |
+| Bundle       | BSC, Ethereum               | Unlimited                              |
+| Block Builder| BSC                         | Unlimited (private txs and bundles)    |
+
+<Note>
+  Free tier limits apply per API key. Register at [blockrazor.io](https://blockrazor.io) to receive your key instantly — no payment information is required to get started.
+</Note>
+
+## Getting started
+
+<Steps>
+  <Step title="Create your account">
+    Register at [blockrazor.io](https://blockrazor.io). Your API key is generated immediately and grants access to all four free-tier submission modes across Solana, BSC, Ethereum, and Base.
+  </Step>
+  <Step title="Configure your wallet or tool">
+    Point your wallet's custom RPC endpoint to the BlockRazor protected RPC URL for your chosen chain. For programmatic use, replace the endpoint in your existing script — no other code changes are needed.
+  </Step>
+  <Step title="Submit your first transaction">
+    Send a transaction as normal. BlockRazor handles MEV protection, routing, and acceleration transparently. You can monitor submission status and transaction tracing from the dashboard.
+  </Step>
+  <Step title="Scale when ready">
+    When your needs outgrow the free tier, browse individual service subscriptions or bundle packages from the pricing page. Discounts of 5–20% apply for 3–12 month commitments.
+  </Step>
+</Steps>
+
+<Tip>
+  Start with the RPC endpoint as a simple drop-in replacement for your current provider. You get immediate MEV protection with zero configuration overhead, and you can layer in Fast mode or Bundle later as your trading strategy evolves.
+</Tip>
+
+## Recommended next steps
+
+<CardGroup cols={3}>
+  <Card title="Get Your API Key" icon="key" href="/authentication">
+    Register and retrieve your API key to unlock all free-tier services immediately.
+  </Card>
+  <Card title="Explore Pricing" icon="tag" href="/pricing">
+    Compare individual service subscriptions and bundle packages when you're ready to scale.
+  </Card>
+  <Card title="Fast Submission" icon="bolt" href="/transaction-submission/fast">
+    Learn how to configure Fast mode for the lowest-latency confirmations on Solana, BSC, and Base.
+  </Card>
+</CardGroup>

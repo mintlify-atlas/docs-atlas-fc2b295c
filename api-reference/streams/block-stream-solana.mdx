@@ -1,0 +1,276 @@
+---
+title: "Solana Block Streams — Shred, Geyser & Sandwich Detector"
+sidebarTitle: "Solana Block Stream"
+description: "Stream low-latency Solana block data via Shred Stream or Geyser gRPC, and detect sandwich attacks in real time with BlockRazor's Sandwich Detector."
+---
+
+BlockRazor provides two distinct Solana block streaming products — **Shred Stream** and **Geyser Stream** — each optimized for different latency profiles and data granularity requirements. Shred Stream delivers raw shred data from the Solana network at the lowest possible latency, while Geyser Stream provides structured real-time data covering accounts, slots, blocks, and transactions via the Yellowstone gRPC interface. Both streams are complemented by the **Sandwich Detector**, which flags sandwich attack patterns in incoming Solana blocks as they are processed.
+
+<Info>
+  Shred Stream and Geyser Stream are independent subscriptions. You can purchase either or both depending on your use case. The Sandwich Detector is an add-on capability available alongside these streams.
+</Info>
+
+## Stream Comparison
+
+| Feature              | Shred Stream                   | Geyser Stream                            |
+| -------------------- | ------------------------------ | ---------------------------------------- |
+| Data type            | Raw shreds                     | Accounts, slots, blocks, transactions    |
+| Latency profile      | Ultra-low (pre-block)          | Low (slot-confirmed)                     |
+| Interface            | WebSocket / custom transport   | gRPC (Yellowstone)                       |
+| Pricing              | $500 / stream / month          | Tiered by TiB/month (see below)          |
+
+---
+
+<Tabs>
+  <Tab title="Shred Stream">
+    ## Shred Stream
+
+    The Shred Stream transmits raw shred packets directly from Solana validators before they are assembled into complete blocks. This makes it the fastest possible source of Solana block data — ideal for latency-sensitive applications such as high-frequency trading bots, leader-aware transaction scheduling, and real-time arbitrage.
+
+    ### Connection Details
+
+    | Property  | Value                         |
+    | --------- | ----------------------------- |
+    | Protocol  | WebSocket (WSS)               |
+    | Pricing   | $500 / stream / month         |
+    | Chain     | Solana                        |
+
+    <Note>
+      Contact [support@blockrazor.io](mailto:support@blockrazor.io) for your dedicated Shred Stream endpoint and auth token after subscribing. Endpoints are provisioned per customer.
+    </Note>
+
+    ### Code Example
+
+    <CodeGroup>
+
+    ```bash CLI (websocat)
+    websocat "wss://shred.blockrazor.io/solana?auth=YOUR_AUTH_TOKEN"
+    ```
+
+    ```javascript JavaScript
+    const WebSocket = require('ws');
+
+    const ws = new WebSocket(
+      'wss://shred.blockrazor.io/solana?auth=YOUR_AUTH_TOKEN'
+    );
+
+    ws.on('open', () => console.log('Connected to Solana Shred Stream'));
+
+    ws.on('message', (data) => {
+      // Raw shred binary payload — parse according to Solana shred format
+      console.log('Received shred, bytes:', data.length);
+    });
+
+    ws.on('error', (err) => console.error('Shred Stream error:', err));
+    ```
+
+    ```go Go
+    package main
+
+    import (
+    	"fmt"
+    	"log"
+
+    	"github.com/gorilla/websocket"
+    )
+
+    func main() {
+    	url := "wss://shred.blockrazor.io/solana?auth=YOUR_AUTH_TOKEN"
+    	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+    	if err != nil {
+    		log.Fatal("shred dial error:", err)
+    	}
+    	defer conn.Close()
+
+    	fmt.Println("Connected to Solana Shred Stream")
+    	for {
+    		msgType, msg, err := conn.ReadMessage()
+    		if err != nil {
+    			log.Println("read error:", err)
+    			break
+    		}
+    		fmt.Printf("Shred received: type=%d bytes=%d\n", msgType, len(msg))
+    	}
+    }
+    ```
+
+    </CodeGroup>
+
+    <Tip>
+      Shred data arrives in binary frames. Use a Solana shred decoder library to reconstruct entries and transactions from raw shred payloads before further processing.
+    </Tip>
+
+    ### Pricing
+
+    | Subscription Period | Price                 | Discount |
+    | ------------------- | --------------------- | -------- |
+    | 1 month             | $500 / stream / month | —        |
+    | 3 months            | $500 / stream / month | 5% off   |
+    | 6 months            | $500 / stream / month | 10% off  |
+    | 12 months           | $500 / stream / month | 20% off  |
+  </Tab>
+
+  <Tab title="Geyser Stream">
+    ## Geyser Stream
+
+    The Geyser Stream exposes Solana on-chain data in real time through the Yellowstone gRPC interface — the same plugin architecture used by Solana validators. It delivers structured updates for accounts, slots, blocks, and individual transactions, making it ideal for indexers, MEV bots, DeFi dashboards, and any application that needs a reliable, queryable view of Solana state.
+
+    ### Connection Details
+
+    | Property  | Value                                    |
+    | --------- | ---------------------------------------- |
+    | Protocol  | gRPC (Yellowstone / `yellowstone-grpc`)  |
+    | Endpoint  | `https://geyser.blockrazor.io`           |
+    | Pricing   | Tiered by data volume (TiB/month)        |
+    | Chain     | Solana                                   |
+
+    ### Tiered Pricing
+
+    | Volume          | Price / month |
+    | --------------- | ------------- |
+    | 5 TiB           | $250          |
+    | 10 TiB          | $500          |
+    | 50 TiB          | $2,500        |
+    | 100 TiB         | $4,750        |
+    | 150 TiB         | $6,750        |
+    | 200 TiB         | $8,500        |
+    | 250 TiB         | $10,000       |
+
+    <Note>
+      Overage beyond your selected tier is billed at the per-TiB rate of the next tier. Contact BlockRazor sales for custom enterprise pricing above 250 TiB/month.
+    </Note>
+
+    ### Code Examples
+
+    <CodeGroup>
+
+    ```rust Rust
+    use yellowstone_grpc_client::GeyserGrpcClient;
+
+    #[tokio::main]
+    async fn main() -> anyhow::Result<()> {
+        let mut client = GeyserGrpcClient::connect(
+            "https://geyser.blockrazor.io",
+            Some("YOUR_AUTH_TOKEN"),
+            None,
+        )
+        .await?;
+
+        // Subscribe to slot updates
+        let (mut subscribe_tx, mut stream) = client.subscribe().await?;
+
+        // Send subscription request for slots and transactions
+        use yellowstone_grpc_proto::prelude::*;
+        subscribe_tx
+            .send(SubscribeRequest {
+                slots: std::collections::HashMap::from([(
+                    "slots".to_string(),
+                    SubscribeRequestFilterSlots {},
+                )]),
+                ..Default::default()
+            })
+            .await?;
+
+        // Process incoming stream events
+        while let Some(message) = stream.next().await {
+            match message {
+                Ok(msg) => println!("Geyser event: {:?}", msg.update_oneof),
+                Err(e) => eprintln!("Stream error: {}", e),
+            }
+        }
+
+        Ok(())
+    }
+    ```
+
+    ```go Go
+    package main
+
+    import (
+    	"context"
+    	"fmt"
+    	"log"
+
+    	"google.golang.org/grpc"
+    	"google.golang.org/grpc/credentials"
+    	"google.golang.org/grpc/metadata"
+    	pb "github.com/rpcpool/yellowstone-grpc/examples/golang/proto"
+    )
+
+    func main() {
+    	conn, err := grpc.Dial(
+    		"geyser.blockrazor.io:443",
+    		grpc.WithTransportCredentials(credentials.NewTLS(nil)),
+    	)
+    	if err != nil {
+    		log.Fatal("gRPC dial error:", err)
+    	}
+    	defer conn.Close()
+
+    	client := pb.NewGeyserClient(conn)
+    	ctx := metadata.AppendToOutgoingContext(
+    		context.Background(),
+    		"authorization", "Bearer YOUR_AUTH_TOKEN",
+    	)
+
+    	stream, err := client.Subscribe(ctx)
+    	if err != nil {
+    		log.Fatal("subscribe error:", err)
+    	}
+
+    	for {
+    		msg, err := stream.Recv()
+    		if err != nil {
+    			log.Println("recv error:", err)
+    			break
+    		}
+    		fmt.Printf("Geyser update received: %T\n", msg.UpdateOneof)
+    	}
+    }
+    ```
+
+    ```javascript JavaScript
+    const grpc = require('@grpc/grpc-js');
+
+    // Connect using a gRPC client generated from the Yellowstone proto definition
+    const client = new GeyserClient(
+      'geyser.blockrazor.io:443',
+      grpc.credentials.createSsl()
+    );
+
+    const metadata = new grpc.Metadata();
+    metadata.add('authorization', 'Bearer YOUR_AUTH_TOKEN');
+
+    const stream = client.subscribe({}, metadata);
+
+    stream.on('data', (update) => {
+      console.log('Geyser update:', JSON.stringify(update));
+    });
+
+    stream.on('error', (err) => console.error('Geyser error:', err));
+    stream.on('end', () => console.log('Geyser stream ended'));
+    ```
+
+    </CodeGroup>
+
+    <Tip>
+      Use subscription filters in your `SubscribeRequest` to limit data to specific account keys, program IDs, or transaction signatures. Filtering at the server reduces egress volume and keeps you within your TiB tier.
+    </Tip>
+  </Tab>
+</Tabs>
+
+---
+
+## Sandwich Detector
+
+The Sandwich Detector is a real-time analysis layer that inspects incoming Solana block data and identifies sandwich attack patterns — sequences where a bot places buy and sell orders around a victim transaction to extract value. When a sandwich is detected, the detector emits a structured alert alongside the block stream data.
+
+<Note>
+  The Sandwich Detector operates on Geyser Stream data and is available as part of the Geyser Stream subscription. No separate endpoint is needed — configure sandwich detection as a filter within your subscription request.
+</Note>
+
+Detected sandwich events include:
+- **Frontrun transaction hash** — the bot's buy-side transaction placed before the victim.
+- **Victim transaction hash** — the targeted user transaction.
+- **Backrun transaction hash** — the bot's sell-side transaction placed after the victim.
+- **Estimated extracted value** — approximate profit extracted by the sandwicher, in lamports.

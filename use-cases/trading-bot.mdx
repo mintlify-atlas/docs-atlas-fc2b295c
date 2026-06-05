@@ -1,0 +1,118 @@
+---
+title: "BlockRazor for Trading Bots: Speed and Reliability"
+sidebarTitle: "Trading Bot"
+description: "Give your trading bot a decisive edge with global acceleration, atomic bundle execution, and real-time mempool signals across BSC, Solana, and Base."
+---
+
+Trading bots live and die by milliseconds. Whether you are running a copy-trading strategy, chasing a backrun opportunity, or executing a token snipe, the difference between profit and loss is almost always latency — at the submission layer, the signal layer, or both. BlockRazor was built for exactly this environment. Its global acceleration network, atomic bundle execution, and low-latency mempool streams give your bot the infrastructure it needs to compete at the frontier of on-chain trading.
+
+## Why trading bots choose BlockRazor
+
+<CardGroup cols={3}>
+  <Card title="Fast Transaction Submission" icon="bolt" href="/transaction-submission/fast">
+    Propagate transactions through BlockRazor's globally distributed acceleration network for the lowest possible confirmation latency on Solana, BSC, and Base.
+  </Card>
+  <Card title="Bundle Execution" icon="layer-group" href="/transaction-submission/bundle">
+    Submit a group of transactions that execute atomically within the same block as a target "signal" transaction — essential for backrunning and copy trading.
+  </Card>
+  <Card title="Mempool Streams" icon="satellite-dish" href="/streams/mempool">
+    Receive low-latency pushes of pending transactions the moment they enter the network, giving your bot the earliest possible signal to act on.
+  </Card>
+</CardGroup>
+
+## Core benefits
+
+<Steps>
+  <Step title="Global acceleration for minimum latency">
+    Fast mode routes your transactions through BlockRazor's high-performance global network and connects directly to highly staked validators. On Solana you get up to 3 TPS by default; on BSC and Base up to 10 TPS. This is the submission path to choose when raw speed to confirmation is your primary requirement.
+  </Step>
+  <Step title="Atomic bundle execution for complex strategies">
+    Bundle mode lets you pair your bot's transaction with a target transaction and guarantee they land in the same block, in the correct order. If your transaction cannot be included alongside the target, the entire bundle reverts — protecting you from partial execution and wasted gas. This is the backbone of backrunning, copy trading, and token sniping strategies.
+  </Step>
+  <Step title="Mempool signals for earliest detection">
+    BlockRazor's Mempool stream delivers pending transaction data with sub-millisecond push latency. Your signal-detection logic sees new transactions before they are widely propagated, giving your bot the time it needs to construct and submit a response bundle.
+  </Step>
+</Steps>
+
+## Chain and service matrix
+
+| Strategy            | Recommended Service | Supported Chains       |
+|---------------------|---------------------|------------------------|
+| Low-latency sending | Fast                | Solana, BSC, Base      |
+| Backrunning         | Bundle + Mempool    | BSC, Ethereum          |
+| Copy trading        | Bundle + Mempool    | BSC, Ethereum          |
+| Token sniping       | Bundle + Mempool    | BSC, Ethereum          |
+| Signal detection    | Mempool Stream      | BSC, Ethereum          |
+
+<Info>
+  BSC Bundle subscribers can also access the BlockRazor Block Builder — which holds a 37% historical block production rate on BSC — to maximise the chance that their bundle lands in the target block.
+</Info>
+
+## Integration patterns
+
+<Tabs>
+  <Tab title="Fast Submission (BSC)">
+    Fast mode on BSC uses the standard `eth_sendRawTransaction` interface. Include the tip to BlockRazor's designated address inside the transaction itself.
+
+    ```bash
+    curl -X POST https://rpc.blockrazor.io/bsc/<api-key>/fast \
+      -H "Content-Type: application/json" \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "eth_sendRawTransaction",
+        "params": ["0x<signed_tx_hex>"],
+        "id": 1
+      }'
+    ```
+  </Tab>
+  <Tab title="Bundle Submission (BSC)">
+    Submit a bundle containing your bot's transaction alongside the target signal transaction. The bundle is routed to the BlockRazor Block Builder.
+
+    ```bash
+    curl -X POST https://rpc.blockrazor.io/bsc/<api-key>/bundle \
+      -H "Content-Type: application/json" \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "eth_sendMevBundle",
+        "params": [{
+          "txs": ["0x<signal_tx_hex>", "0x<your_tx_hex>"],
+          "blockNumber": "0x<target_block>"
+        }],
+        "id": 1
+      }'
+    ```
+  </Tab>
+  <Tab title="Mempool Stream">
+    Connect to the Mempool WebSocket stream to receive real-time pending transaction pushes and feed your signal-detection pipeline.
+
+    ```javascript
+    const ws = new WebSocket(
+      "wss://stream.blockrazor.io/bsc/<api-key>/mempool"
+    );
+
+    ws.on("message", (data) => {
+      const pending = JSON.parse(data);
+      // Evaluate pending.tx against your strategy criteria
+      evaluateSignal(pending.tx);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+  Combine a Mempool stream subscription with Bundle submission for the tightest end-to-end loop: detect the signal transaction the moment it is broadcast, immediately construct your bundle, and submit it through Fast mode so it reaches the validator with minimum propagation delay.
+</Tip>
+
+## Recommended services
+
+<CardGroup cols={3}>
+  <Card title="Fast Submission" icon="bolt" href="/transaction-submission/fast">
+    Global acceleration network for lowest-latency transaction confirmation on Solana, BSC, and Base.
+  </Card>
+  <Card title="Bundle" icon="layer-group" href="/transaction-submission/bundle">
+    Atomic multi-transaction execution for backrunning, copy trading, and sniping on BSC and Ethereum.
+  </Card>
+  <Card title="Mempool Stream" icon="satellite-dish" href="/streams/mempool">
+    Real-time pending transaction pushes for signal detection on BSC and Ethereum.
+  </Card>
+</CardGroup>

@@ -1,0 +1,141 @@
+---
+title: "BSC gRPC Interface for High-Performance Tx Submission"
+sidebarTitle: "BSC gRPC"
+description: "Submit BSC transactions over BlockRazor's gRPC endpoint for lower overhead, binary encoding, and streaming support compared to JSON-RPC."
+---
+
+BlockRazor provides a gRPC interface for BNB Smart Chain transaction submission as a high-performance alternative to the JSON-RPC endpoint. gRPC uses HTTP/2 as its transport layer, which enables multiplexed streams, header compression, and binary Protocol Buffer encoding — all of which reduce per-request overhead compared to traditional JSON-over-HTTP/1.1 connections. For latency-sensitive applications such as trading bots, arbitrage searchers, and high-frequency transaction pipelines, the gRPC interface can meaningfully improve throughput and reduce round-trip time.
+
+## Why gRPC?
+
+<Info>
+  gRPC offers several advantages over JSON-RPC for high-performance transaction submission:
+
+  - **Lower overhead** — Binary Protocol Buffer serialization is significantly more compact than JSON text encoding, reducing payload size and parse time.
+  - **Streaming support** — HTTP/2 multiplexing allows multiple concurrent RPC calls over a single connection without head-of-line blocking.
+  - **Strongly typed contracts** — Proto definitions enforce request and response schemas at compile time, eliminating a class of runtime errors.
+  - **Persistent connections** — Long-lived HTTP/2 connections avoid TCP and TLS handshake overhead on every request.
+</Info>
+
+## Endpoint
+
+```
+grpc.blockrazor.io:443
+```
+
+The gRPC server requires TLS. Connect using your language's standard TLS credential helpers and pass your API token as gRPC metadata on each call.
+
+## Authentication
+
+Authentication is performed via gRPC metadata rather than HTTP headers. Attach the following key-value pair to the outgoing context of every RPC call:
+
+| Metadata Key    | Value                        |
+|-----------------|------------------------------|
+| `authorization` | `Bearer YOUR_AUTH_TOKEN`     |
+
+<Note>
+  The metadata key must be lowercase (`authorization`), as gRPC metadata keys are case-insensitive but lowercase is the conventional form. Obtain your `YOUR_AUTH_TOKEN` from the [BlockRazor dashboard](https://blockrazor.io).
+</Note>
+
+## Connection Parameters
+
+<ParamField query="host" type="string" required>
+  gRPC server host. Use `grpc.blockrazor.io`.
+</ParamField>
+
+<ParamField query="port" type="integer" required>
+  Server port. Always `443` (TLS required).
+</ParamField>
+
+<ParamField query="transport_credentials" type="object" required>
+  TLS credentials for the connection. Pass `nil` to use the system's default TLS configuration, which is sufficient for most environments.
+</ParamField>
+
+## Metadata Fields
+
+<ParamField header="authorization" type="string" required>
+  gRPC metadata key carrying your BlockRazor API token. Value format: `Bearer YOUR_AUTH_TOKEN`.
+</ParamField>
+
+## Example: Connecting and Submitting a Transaction (Go)
+
+The following example demonstrates how to establish a TLS-secured gRPC connection to BlockRazor and attach authentication metadata to the outgoing context. Use the generated protobuf client for your specific service to call `SendRawTransaction` or equivalent methods.
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials"
+    "google.golang.org/grpc/metadata"
+)
+
+func main() {
+    // Use the system default TLS configuration for secure transport
+    creds := credentials.NewTLS(nil)
+
+    conn, err := grpc.Dial(
+        "grpc.blockrazor.io:443",
+        grpc.WithTransportCredentials(creds),
+    )
+    if err != nil {
+        log.Fatalf("failed to connect: %v", err)
+    }
+    defer conn.Close()
+
+    // Attach the BlockRazor API token as outgoing gRPC metadata
+    ctx := metadata.AppendToOutgoingContext(
+        context.Background(),
+        "authorization", "Bearer YOUR_AUTH_TOKEN",
+    )
+
+    // Use the generated protobuf client to call SendRawTransaction.
+    // Replace BlockRazorClient with the actual generated client type
+    // from your compiled .proto file.
+    //
+    // Example (pseudocode):
+    //   client := pb.NewTransactionServiceClient(conn)
+    //   resp, err := client.SendRawTransaction(ctx, &pb.SendRawTransactionRequest{
+    //       SignedTxHex: "0xSIGNED_TX_HEX",
+    //   })
+    //   if err != nil {
+    //       log.Fatalf("SendRawTransaction failed: %v", err)
+    //   }
+    //   log.Printf("Transaction hash: %s", resp.TxHash)
+
+    _ = ctx
+}
+```
+
+<Tip>
+  Keep the gRPC connection (`*grpc.ClientConn`) open and reuse it across multiple calls. Creating a new connection per transaction incurs unnecessary TLS handshake latency and should be avoided in production.
+</Tip>
+
+## Dependency Installation (Go)
+
+Add the required gRPC dependencies to your Go module:
+
+```bash
+go get google.golang.org/grpc
+go get google.golang.org/grpc/credentials
+go get google.golang.org/grpc/metadata
+```
+
+## Comparison: gRPC vs JSON-RPC
+
+| Feature                   | gRPC (`grpc.blockrazor.io:443`) | JSON-RPC (`rpc.blockrazor.io/bsc`) |
+|---------------------------|---------------------------------|-------------------------------------|
+| Encoding                  | Binary (Protocol Buffers)       | Text (JSON)                         |
+| Transport                 | HTTP/2                          | HTTP/1.1                            |
+| Multiplexing              | Yes                             | No                                  |
+| Streaming                 | Bidirectional                   | Not supported                       |
+| Schema enforcement        | Compile-time (proto)            | Runtime                             |
+| MEV protection            | Yes                             | Yes                                 |
+| Auth mechanism            | gRPC metadata                   | HTTP `Authorization` header         |
+
+<Info>
+  Both gRPC and JSON-RPC endpoints share the same BlockRazor backend infrastructure and MEV protection guarantees. Choose gRPC when minimizing latency and maximizing throughput is the primary concern; choose JSON-RPC for maximum ecosystem compatibility with existing Ethereum tooling.
+</Info>

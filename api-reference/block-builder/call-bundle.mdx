@@ -1,0 +1,147 @@
+---
+title: "Simulate a BSC Bundle with Block Builder — eth_callBundle"
+sidebarTitle: "Call Bundle"
+description: "Dry-run a transaction bundle against BSC chain state using eth_callBundle to verify gas usage, output values, and revert behavior before submission."
+---
+
+The `eth_callBundle` method simulates the execution of a bundle against a specified BSC chain state without submitting any transactions on-chain. This gives you a gas-free, risk-free way to verify that your bundle will execute as intended before committing to `eth_sendBundle`. The response provides per-transaction results including gas consumed, return values, and revert reasons, enabling your system to catch errors and optimize gas parameters before they cost real funds.
+
+<Info>
+  Bundle simulation via `eth_callBundle` is included in the BSC Package subscription at **$1,250/month**. It is also available as part of the Call Bundle service tier. See [Pricing](https://blockrazor.io/#/pricing) for details.
+</Info>
+
+## Endpoint
+
+```
+POST https://builder.blockrazor.io/bsc
+```
+
+Authentication is performed via a Bearer token passed in the `Authorization` header.
+
+## Request
+
+The request follows the standard JSON-RPC 2.0 envelope. The single element of `params` is a simulation configuration object.
+
+### Simulation Parameters
+
+<ParamField body="txs" type="string[]" required>
+  An ordered array of signed raw transactions encoded as hex strings (each prefixed with `0x`). The transactions are simulated in the order provided against the specified chain state, mirroring how they would execute if submitted as a live bundle.
+</ParamField>
+
+<ParamField body="blockNumber" type="string" required>
+  The block number against which the bundle is simulated, expressed as a hex string (e.g., `"0xE4E1C0"`). This controls which block context (base fee, block hash, coinbase) the simulation uses.
+</ParamField>
+
+<ParamField body="stateBlockNumber" type="string" required>
+  The block number or the string `"latest"` that determines which world state snapshot is used during simulation. Use `"latest"` to simulate against the current chain tip, or specify a historical block number to replay against past state.
+</ParamField>
+
+<ParamField body="timestamp" type="integer">
+  Optional. A Unix timestamp override (in seconds) to use as the simulated block's timestamp. Useful for testing time-dependent logic such as TWAP calculations or time-locked contracts.
+</ParamField>
+
+## Code Examples
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://builder.blockrazor.io/bsc \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_callBundle",
+    "params": [
+      {
+        "txs": ["0xSIGNED_TX_1", "0xSIGNED_TX_2"],
+        "blockNumber": "0xE4E1C0",
+        "stateBlockNumber": "latest"
+      }
+    ],
+    "id": 1
+  }'
+```
+
+```json JSON-RPC Request
+{
+  "jsonrpc": "2.0",
+  "method": "eth_callBundle",
+  "params": [
+    {
+      "txs": [
+        "0xSIGNED_TX_1",
+        "0xSIGNED_TX_2"
+      ],
+      "blockNumber": "0xE4E1C0",
+      "stateBlockNumber": "latest",
+      "timestamp": 1710001800
+    }
+  ],
+  "id": 1
+}
+```
+</CodeGroup>
+
+## Response
+
+The response contains the bundle hash and an array of per-transaction simulation results. Each entry in `results` corresponds to a transaction in the input `txs` array, in the same order.
+
+<ResponseField name="bundleHash" type="string">
+  A hash derived from the simulated bundle. This value matches the hash that would be returned by `eth_sendBundle` if you submit the same bundle, allowing you to correlate simulation results with live submissions.
+</ResponseField>
+
+<ResponseField name="results" type="object[]">
+  An array of simulation result objects, one per transaction in the input `txs` array.
+
+  <Expandable title="Result Object Fields">
+    <ResponseField name="txHash" type="string">
+      The hash of the individual transaction within the simulated bundle.
+    </ResponseField>
+
+    <ResponseField name="gasUsed" type="integer">
+      The amount of gas consumed by this transaction during simulation. Use this to fine-tune gas limits and estimate bundle costs.
+    </ResponseField>
+
+    <ResponseField name="value" type="string">
+      The return value of the transaction's top-level call, encoded as a hex string. For contract interactions, this is the ABI-encoded return data from the called function.
+    </ResponseField>
+
+    <ResponseField name="error" type="string">
+      Present only if the transaction reverted during simulation. Contains the revert reason string or the raw revert data, which can be decoded using the contract's ABI to diagnose the failure.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+```json Response Example
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "bundleHash": "0x7f3a9c2e1d4b...",
+    "results": [
+      {
+        "txHash": "0xabc123...",
+        "gasUsed": 84200,
+        "value": "0x0000000000000000000000000000000000000000000000000de0b6b3a7640000"
+      },
+      {
+        "txHash": "0xdef456...",
+        "gasUsed": 61500,
+        "value": "0x",
+        "error": "execution reverted: insufficient output amount"
+      }
+    ]
+  }
+}
+```
+
+## Interpreting Simulation Results
+
+Each entry in `results` maps directly to the corresponding transaction in your `txs` input. A missing `error` field indicates the transaction succeeded. An `error` field with a revert message indicates the transaction would revert under the simulated conditions.
+
+<Note>
+  Simulation results reflect the state at `stateBlockNumber`, not necessarily the state at the block when you submit a live bundle. Chain state may change between simulation and actual block building, particularly for DeFi positions sensitive to price movements. Re-simulate close to the time of submission for the most accurate results.
+</Note>
+
+<Tip>
+  If `gasUsed` from simulation is close to your transaction's gas limit, increase the gas limit before live submission. Blocks include a small amount of overhead beyond pure simulation gas, and running out of gas on-chain causes a revert that consumes all provided gas.
+</Tip>

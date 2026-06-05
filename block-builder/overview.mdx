@@ -1,0 +1,102 @@
+---
+title: "Block Builder: BSC Block Building Service Overview"
+sidebarTitle: "Overview"
+description: "BlockRazor's Block Builder delivers PBS-based BSC block construction with a 37% cumulative block production rate—ranked #1 on the entire BSC chain."
+---
+
+BlockRazor's Block Builder is a professional BSC block-building service built on the Proposer-Builder Separation (PBS) architecture. Deployed across multiple geographic regions, the Block Builder maintains low-latency communication channels to validators and continuously runs multiple block-construction algorithms to maximize block value. With a historical cumulative block production rate of **37%**—the highest of any builder on BSC—BlockRazor gives searchers, trading bots, DEXs, and quantitative systems a decisive edge for on-chain execution.
+
+## What Is PBS and Why Does It Matter?
+
+Proposer-Builder Separation (PBS) decouples the roles of the entity that *proposes* a block (the validator) from the entity that *builds* it (the builder). Builders compete to assemble the most valuable block possible—ordering, selecting, and including transactions to maximize fees and MEV. The winning block header is then forwarded to the validator for proposal to the network.
+
+This model benefits every participant in the ecosystem:
+
+- **Searchers & Trading Bots** can submit bundles and private transactions directly to a trusted builder, guaranteeing atomic execution and protection from front-running.
+- **Validators** receive higher block rewards because competitive builders drive up block value.
+- **End Users** gain MEV protection through private transaction routing that never exposes orders to the public mempool.
+
+<Note>
+  Track BlockRazor's real-time block production rate on the official BNB Chain MEV dashboard: [https://dune.com/bnbchain/bnb-smart-chain-mev-stats](https://dune.com/bnbchain/bnb-smart-chain-mev-stats)
+</Note>
+
+## BlockRazor Block Builder at a Glance
+
+<CardGroup cols={2}>
+  <Card title="37% Block Production Rate" icon="trophy">
+    Historical cumulative rate, ranked **#1** on BSC. BlockRazor builders win more blocks than any other builder on the chain.
+  </Card>
+  <Card title="Multi-Region Deployment" icon="globe">
+    Infrastructure nodes are co-located close to validator clusters worldwide to minimize propagation latency.
+  </Card>
+  <Card title="Multi-Algorithm Construction" icon="microchip">
+    Multiple ordering and selection algorithms run simultaneously, ensuring blocks are always competitively valuable.
+  </Card>
+  <Card title="Free Access for New Users" icon="gift">
+    New registered users get free access to `eth_sendBundle` and `eth_sendPrivateTransaction` with no submission limits.
+  </Card>
+</CardGroup>
+
+## Available Operations
+
+The Block Builder exposes six core operations. Use them individually or combine them in your integration workflow.
+
+<CardGroup cols={2}>
+  <Card title="Send Bundle" icon="layer-group" href="/block-builder/send-bundle">
+    Submit an ordered batch of signed transactions to the Block Builder for atomic inclusion in a target block.
+  </Card>
+  <Card title="Send Private Transaction" icon="lock" href="/block-builder/send-private-transaction">
+    Route a single transaction privately through the Block Builder, bypassing the public mempool entirely.
+  </Card>
+  <Card title="Call Bundle" icon="flask" href="/block-builder/call-bundle">
+    Simulate a bundle against a specific block state without submitting it—validate profitability before going live.
+  </Card>
+  <Card title="Trace Bundle" icon="magnifying-glass" href="/block-builder/trace-bundle">
+    Retrieve detailed execution traces for a previously submitted bundle to debug ordering and gas usage.
+  </Card>
+  <Card title="Fast Submit" icon="bolt" href="/block-builder/fast-submit">
+    Submit transactions with reduced latency and higher stability by bypassing the standard relay path.
+  </Card>
+  <Card title="Dedicate Connection" icon="plug" href="/block-builder/dedicate-connection">
+    Establish a private, reserved channel to Block Builder infrastructure for maximum throughput and priority routing.
+  </Card>
+</CardGroup>
+
+## Access & Pricing
+
+BlockRazor structures Block Builder access across two tiers:
+
+### Free — New Registered Users
+
+All new registered users can immediately send bundles and private transactions to the Block Builder on BSC at no cost:
+
+| Method | Limit |
+|---|---|
+| `eth_sendBundle` | No limit |
+| `eth_sendPrivateTransaction` | No limit |
+
+<Tip>
+  Create your account at [https://blockrazor.io](https://blockrazor.io) to start using the free tier instantly. No credit card is required.
+</Tip>
+
+### Subscription — BSC Package ($1,250 / month)
+
+The BSC Package bundles advanced Block Builder features with high-performance data streams at a discounted combined price:
+
+| Service | Description |
+|---|---|
+| Call Bundle | Simulate bundles before submission |
+| Fast Submit | Lower-latency transaction submission |
+| Public Mempool | High-performance pending transaction stream |
+| Block Stream | Low-latency confirmed block data |
+| Node Stream | Real-time synchronized world state |
+| Tx Trace | Transaction propagation path monitoring |
+
+### Subscription — Individual Services
+
+| Service | Price |
+|---|---|
+| Bundle Tracing & Explorer (`eth_traceBundle`) | $1,500 / month |
+| Dedicated Channel | $1,000 / month |
+
+Multi-month subscriptions are eligible for discounts up to 20%. See the [Pricing](/pricing) page for the full discount schedule.

@@ -1,0 +1,139 @@
+---
+title: "eth_sendPrivateTransaction: Shield BSC Transactions"
+sidebarTitle: "Private Transaction"
+description: "Send a signed transaction privately to BlockRazor's Block Builder, bypassing the public mempool to prevent front-running and sandwich attacks on BSC."
+---
+
+The `eth_sendPrivateTransaction` method routes a signed transaction directly to BlockRazor's Block Builder without broadcasting it to the public BSC mempool. Because the transaction never appears in the public pending transaction pool, malicious bots and MEV searchers cannot detect, front-run, or sandwich it before it is included in a block. This makes private transaction submission essential for any workflow where transaction visibility before confirmation creates risk—including large swaps, liquidations, and time-sensitive arbitrage.
+
+<Note>
+  New registered users can submit private transactions to the Block Builder on BSC **for free** with no submission-rate limits. Sign up at [https://blockrazor.io](https://blockrazor.io) to get started immediately.
+</Note>
+
+## Why Private Submission Matters
+
+When a transaction is sent via a standard RPC node, it is broadcast to the public mempool where every participant on the network can observe it. Automated bots continuously monitor the mempool and can:
+
+- **Front-run** your transaction by submitting an identical or competing transaction with a higher gas price.
+- **Sandwich attack** your swap by inserting buy and sell transactions around yours to extract value at your expense.
+
+By submitting through `eth_sendPrivateTransaction`, your transaction bypasses the public mempool entirely and travels through a private channel directly to BlockRazor's Block Builder. It is only revealed on-chain once it has been included in a confirmed block.
+
+## Request Format
+
+Send a standard JSON-RPC 2.0 `POST` request with the method `eth_sendPrivateTransaction`.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "eth_sendPrivateTransaction",
+  "params": [
+    {
+      "tx": "0xSIGNED_TX_HEX",
+      "maxBlockNumber": "0xE4E200"
+    }
+  ],
+  "id": 1
+}
+```
+
+## Parameters
+
+<ParamField body="tx" type="string" required>
+  The fully signed, RLP-encoded raw transaction hex string, prefixed with `0x`. This is the same format as used with `eth_sendRawTransaction` on a standard RPC node.
+</ParamField>
+
+<ParamField body="maxBlockNumber" type="string">
+  Optional. The maximum block number (hexadecimal) up to which the Block Builder will attempt to include the transaction. If the transaction has not been included by this block, it is dropped. Omit this field to allow the Block Builder to attempt inclusion over its default window.
+</ParamField>
+
+## Response Format
+
+A successful call returns the transaction hash, which can be used to monitor inclusion status on-chain.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": "0xTRANSACTION_HASH"
+}
+```
+
+<ResponseField name="result" type="string">
+  The keccak256 hash of the submitted transaction. Use this hash to poll `eth_getTransactionReceipt` and confirm on-chain inclusion.
+</ResponseField>
+
+## Example Integration
+
+<Tabs>
+  <Tab title="JavaScript (fetch)">
+    ```javascript
+    const endpoint = "https://blockrazor.io/api/block-builder";
+
+    const payload = {
+      jsonrpc: "2.0",
+      method: "eth_sendPrivateTransaction",
+      params: [
+        {
+          tx: "0xSIGNED_TX_HEX",
+          maxBlockNumber: "0xE4E200",
+        },
+      ],
+      id: 1,
+    };
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer YOUR_API_KEY",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    console.log("Transaction hash:", data.result);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://blockrazor.io/api/block-builder \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "eth_sendPrivateTransaction",
+        "params": [{
+          "tx": "0xSIGNED_TX_HEX",
+          "maxBlockNumber": "0xE4E200"
+        }],
+        "id": 1
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+## Integration Guide
+
+<Steps>
+  <Step title="Build and sign your transaction">
+    Construct your transaction off-chain using your preferred library (ethers.js, web3.js, viem, etc.) and sign it with your private key. The result is a hex-encoded raw transaction string.
+  </Step>
+  <Step title="Determine your maxBlockNumber">
+    Query `eth_blockNumber` to get the current chain head, then set `maxBlockNumber` to a future block that gives the Block Builder enough time to include the transaction—typically `currentBlock + 5` to `currentBlock + 20` depending on urgency.
+  </Step>
+  <Step title="Submit via eth_sendPrivateTransaction">
+    POST the JSON-RPC payload to the BlockRazor Block Builder endpoint with your API key in the `Authorization` header.
+  </Step>
+  <Step title="Monitor inclusion">
+    Poll `eth_getTransactionReceipt` on the returned transaction hash at each new block until you receive a non-null receipt, confirming on-chain inclusion.
+  </Step>
+</Steps>
+
+<Info>
+  Unlike `eth_sendBundle`, a private transaction does not need to be grouped with other transactions. Use it whenever you have a single transaction that must remain invisible to the mempool before confirmation.
+</Info>
+
+<Tip>
+  For strategies that require bundling a private transaction alongside other transactions to guarantee atomic execution, use [`eth_sendBundle`](/block-builder/send-bundle) instead, which provides the same mempool protection plus guaranteed ordering.
+</Tip>

@@ -1,0 +1,202 @@
+---
+title: "Trace a BSC Block Builder Bundle — eth_traceBundle"
+sidebarTitle: "Trace Bundle"
+description: "Retrieve detailed per-transaction execution traces for a submitted BSC Block Builder bundle using eth_traceBundle and a bundleHash."
+---
+
+The `eth_traceBundle` method returns a detailed execution trace for a bundle that was previously submitted to BlockRazor's BSC Block Builder via `eth_sendBundle`. Using the `bundleHash` returned at submission time, you can inspect exactly how each transaction in the bundle executed: which opcodes ran, how much gas was consumed at each step, which events were emitted, and whether any transaction encountered a revert and why. This level of visibility is essential for debugging failed bundles, verifying profitability, and auditing execution paths post-inclusion.
+
+<Info>
+  Bundle tracing is available as the **Bundle Tracing & Explorer** service on BSC at **$1,500/month**, and is also included in the BSC Package at **$1,250/month**. See [Pricing](https://blockrazor.io/#/pricing) for full details.
+</Info>
+
+## Endpoint
+
+```
+POST https://builder.blockrazor.io/bsc
+```
+
+Authentication is performed via a Bearer token passed in the `Authorization` header.
+
+## Request
+
+The request follows the standard JSON-RPC 2.0 envelope. The single element of `params` is a trace request object containing the bundle hash to look up.
+
+### Trace Parameters
+
+<ParamField body="bundleHash" type="string" required>
+  The hash of the bundle to trace, as returned by `eth_sendBundle` at submission time. This uniquely identifies the bundle within BlockRazor's Block Builder and is used to retrieve the stored execution trace.
+</ParamField>
+
+## Code Examples
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://builder.blockrazor.io/bsc \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_traceBundle",
+    "params": [
+      {
+        "bundleHash": "0x7f3a9c2e1d4b..."
+      }
+    ],
+    "id": 1
+  }'
+```
+
+```json JSON-RPC Request
+{
+  "jsonrpc": "2.0",
+  "method": "eth_traceBundle",
+  "params": [
+    {
+      "bundleHash": "0x7f3a9c2e1d4b..."
+    }
+  ],
+  "id": 1
+}
+```
+</CodeGroup>
+
+## Response
+
+The response contains an array of trace objects—one per transaction in the original bundle—each containing full execution detail.
+
+<ResponseField name="result" type="object[]">
+  An array of per-transaction trace objects in the same order as the original bundle's `txs` array.
+
+  <Expandable title="Per-Transaction Trace Fields">
+    <ResponseField name="txHash" type="string">
+      The hash of this transaction within the bundle.
+    </ResponseField>
+
+    <ResponseField name="blockNumber" type="string">
+      The hex-encoded block number in which this bundle was included. Returns `null` if the bundle has not yet been included in a block.
+    </ResponseField>
+
+    <ResponseField name="gasUsed" type="integer">
+      The total amount of gas consumed by this transaction during execution. Useful for reconciling against your pre-submission simulation results from `eth_callBundle`.
+    </ResponseField>
+
+    <ResponseField name="status" type="string">
+      Execution status of the transaction. `"success"` indicates the transaction completed without reverting; `"reverted"` indicates it reverted.
+    </ResponseField>
+
+    <ResponseField name="revertReason" type="string">
+      Present only when `status` is `"reverted"`. Contains the decoded revert reason string or raw revert data from the EVM. Use this to identify which contract condition caused the revert.
+    </ResponseField>
+
+    <ResponseField name="logs" type="object[]">
+      An array of EVM log (event) objects emitted by this transaction.
+
+      <Expandable title="Log Object Fields">
+        <ResponseField name="address" type="string">
+          The contract address that emitted this log.
+        </ResponseField>
+
+        <ResponseField name="topics" type="string[]">
+          An array of 32-byte indexed topic values. The first topic is typically the keccak256 hash of the event signature.
+        </ResponseField>
+
+        <ResponseField name="data" type="string">
+          The non-indexed log data encoded as a hex string. Decode using the emitting contract's ABI to extract event parameters.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="calls" type="object[]">
+      An array of internal call trace objects representing sub-calls made during this transaction's execution (e.g., calls from one contract to another).
+
+      <Expandable title="Call Trace Object Fields">
+        <ResponseField name="type" type="string">
+          The call type: `"CALL"`, `"STATICCALL"`, `"DELEGATECALL"`, or `"CREATE"`.
+        </ResponseField>
+
+        <ResponseField name="from" type="string">
+          The address of the caller.
+        </ResponseField>
+
+        <ResponseField name="to" type="string">
+          The address of the callee.
+        </ResponseField>
+
+        <ResponseField name="value" type="string">
+          The amount of BNB (in wei, as a hex string) transferred with this call. `"0x0"` for non-payable calls.
+        </ResponseField>
+
+        <ResponseField name="gasUsed" type="integer">
+          Gas consumed by this specific internal call.
+        </ResponseField>
+
+        <ResponseField name="input" type="string">
+          The calldata sent to the callee, encoded as a hex string.
+        </ResponseField>
+
+        <ResponseField name="output" type="string">
+          The return data from the callee, encoded as a hex string.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+```json Response Example
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": [
+    {
+      "txHash": "0xabc123def456...",
+      "blockNumber": "0xE4E1C0",
+      "gasUsed": 84200,
+      "status": "success",
+      "logs": [
+        {
+          "address": "0xContractAddress...",
+          "topics": [
+            "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+            "0x000000000000000000000000SenderAddress",
+            "0x000000000000000000000000ReceiverAddress"
+          ],
+          "data": "0x0000000000000000000000000000000000000000000000000de0b6b3a7640000"
+        }
+      ],
+      "calls": [
+        {
+          "type": "CALL",
+          "from": "0xYourAddress...",
+          "to": "0xRouterAddress...",
+          "value": "0x0",
+          "gasUsed": 72000,
+          "input": "0x38ed1739...",
+          "output": "0x00000000..."
+        }
+      ]
+    },
+    {
+      "txHash": "0xfed987cba321...",
+      "blockNumber": "0xE4E1C0",
+      "gasUsed": 24100,
+      "status": "reverted",
+      "revertReason": "execution reverted: insufficient output amount",
+      "logs": [],
+      "calls": []
+    }
+  ]
+}
+```
+
+## Using Trace Data Effectively
+
+Trace data from `eth_traceBundle` provides the ground truth of what happened on-chain, making it the authoritative source for post-execution analysis.
+
+<Note>
+  `eth_traceBundle` only returns data for bundles submitted through BlockRazor's Block Builder. Bundles submitted via the Bundle endpoint (`bundle.blockrazor.io`) are not traceable through this method—use it in conjunction with `eth_sendBundle` on the `builder.blockrazor.io` endpoint.
+</Note>
+
+<Tip>
+  Cross-reference `gasUsed` in the trace with the values returned by `eth_callBundle` simulation. Significant discrepancies indicate that chain state changed between simulation and block inclusion, which can reveal why a bundle behaved differently than expected.
+</Tip>

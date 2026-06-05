@@ -1,0 +1,186 @@
+---
+title: "eth_traceBundle: Detailed Bundle Execution Tracing"
+sidebarTitle: "Trace Bundle"
+description: "Retrieve full execution traces for a submitted BSC bundle using eth_traceBundle—debug ordering, gas usage, and call structure after block inclusion."
+---
+
+The `eth_traceBundle` method retrieves a detailed execution trace for a bundle that has been submitted to BlockRazor's Block Builder. Once your bundle has been included in a BSC block, you can query this endpoint with the bundle's hash to receive a granular breakdown of each transaction's execution: the full call tree, gas consumption at every frame, internal transfers, and any revert or exception data. This level of visibility is indispensable for debugging complex multi-transaction strategies, verifying that transaction ordering was respected, and auditing actual gas costs against predictions.
+
+<Info>
+  Bundle Tracing & Explorer is available as a standalone subscription at **$1,500/month** on BSC. This service provides both the `eth_traceBundle` API and access to BlockRazor's Bundle Explorer UI for visual inspection of bundle execution. See the [Pricing](/pricing) page for details.
+</Info>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Debug Reverts" icon="bug">
+    Pinpoint exactly which call frame caused a revert and inspect the exact revert reason, even inside nested internal calls.
+  </Card>
+  <Card title="Verify Transaction Ordering" icon="list-ol">
+    Confirm that the Block Builder included your transactions in the exact sequence you specified and that no reordering occurred.
+  </Card>
+  <Card title="Audit Gas Usage" icon="gauge-high">
+    Compare actual gas consumed at each execution frame against your model to refine future gas estimates and tip calculations.
+  </Card>
+  <Card title="Inspect Internal Transfers" icon="arrow-right-arrow-left">
+    Track ETH and token transfers that occur inside contract calls, including those not visible in standard transaction receipts.
+  </Card>
+</CardGroup>
+
+## Request Format
+
+Send a standard JSON-RPC 2.0 `POST` request with the method `eth_traceBundle`. You must supply the `bundleHash` returned by a previous `eth_sendBundle` call.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "eth_traceBundle",
+  "params": [
+    {
+      "bundleHash": "0xBUNDLE_HASH"
+    }
+  ],
+  "id": 1
+}
+```
+
+## Parameters
+
+<ParamField body="bundleHash" type="string" required>
+  The bundle hash returned by `eth_sendBundle` when the bundle was originally submitted. This uniquely identifies the bundle within the Block Builder and is used to retrieve the corresponding execution trace. Ensure the bundle has already been included in a confirmed block before calling this method.
+</ParamField>
+
+## Response Format
+
+The response contains an array of execution traces, one per transaction in the bundle, in the order they were executed within the block.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": [
+    {
+      "txHash": "0xTX_HASH_1",
+      "blockNumber": "0xE4E1C0",
+      "gasUsed": 85400,
+      "success": true,
+      "trace": [
+        {
+          "type": "CALL",
+          "from": "0xSENDER_ADDRESS",
+          "to": "0xCONTRACT_ADDRESS",
+          "value": "0x0",
+          "gas": 100000,
+          "gasUsed": 85400,
+          "input": "0xCALLDATA",
+          "output": "0xRETURN_DATA",
+          "calls": []
+        }
+      ]
+    }
+  ]
+}
+```
+
+<ResponseField name="result" type="array">
+  An array of trace objects, one per transaction in the bundle, ordered by execution sequence within the block.
+</ResponseField>
+
+<ResponseField name="result[].txHash" type="string">
+  The on-chain hash of this transaction.
+</ResponseField>
+
+<ResponseField name="result[].blockNumber" type="string">
+  The block number (hexadecimal) in which this transaction was included.
+</ResponseField>
+
+<ResponseField name="result[].gasUsed" type="integer">
+  Total gas consumed by this transaction across all execution frames.
+</ResponseField>
+
+<ResponseField name="result[].success" type="boolean">
+  `true` if the top-level call succeeded; `false` if the transaction reverted.
+</ResponseField>
+
+<ResponseField name="result[].trace" type="array">
+  The call tree for this transaction. Each entry in the array represents a call frame, including the call type (`CALL`, `DELEGATECALL`, `STATICCALL`, `CREATE`), the caller and callee addresses, value transferred, gas limits, input calldata, return data, and any nested sub-calls in the `calls` field.
+</ResponseField>
+
+## Example Integration
+
+<Tabs>
+  <Tab title="JavaScript (fetch)">
+    ```javascript
+    const endpoint = "https://blockrazor.io/api/block-builder";
+
+    // bundleHash was returned by a prior eth_sendBundle call
+    const bundleHash = "0xBUNDLE_HASH";
+
+    const payload = {
+      jsonrpc: "2.0",
+      method: "eth_traceBundle",
+      params: [{ bundleHash }],
+      id: 1,
+    };
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer YOUR_API_KEY",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const { result } = await response.json();
+
+    for (const txTrace of result) {
+      console.log(`TX: ${txTrace.txHash}`);
+      console.log(`  Success: ${txTrace.success}`);
+      console.log(`  Gas used: ${txTrace.gasUsed}`);
+      if (!txTrace.success) {
+        console.error("  Transaction reverted. Inspect trace for details.");
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST https://blockrazor.io/api/block-builder \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "eth_traceBundle",
+        "params": [{
+          "bundleHash": "0xBUNDLE_HASH"
+        }],
+        "id": 1
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+## Debugging Workflow
+
+<Steps>
+  <Step title="Submit your bundle and capture the bundle hash">
+    After calling `eth_sendBundle`, save the `bundleHash` from the response. You will need it to retrieve the trace.
+  </Step>
+  <Step title="Wait for block inclusion">
+    `eth_traceBundle` only returns data after the bundle's target block has been confirmed on-chain. Poll `eth_blockNumber` until the target block has passed, then proceed.
+  </Step>
+  <Step title="Call eth_traceBundle with the bundle hash">
+    Submit the trace request with the saved `bundleHash`. The Block Builder returns the full call-tree trace for every transaction in the bundle.
+  </Step>
+  <Step title="Inspect the trace array">
+    For each transaction, check the `success` flag and `gasUsed` value. If `success` is `false`, inspect the `trace` array to locate the exact call frame that reverted and extract the revert message from the `output` field.
+  </Step>
+  <Step title="Refine your strategy">
+    Use the gas usage data per frame to improve your gas estimates, and use the call tree to verify that internal token transfers occurred as expected before iterating on your bundle logic.
+  </Step>
+</Steps>
+
+<Tip>
+  Combine `eth_traceBundle` with [`eth_callBundle`](/block-builder/call-bundle) in your development workflow: use `eth_callBundle` to simulate and validate before submission, and `eth_traceBundle` to verify and debug after inclusion.
+</Tip>

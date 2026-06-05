@@ -1,0 +1,266 @@
+---
+title: "Fast Mode: Accelerated Transaction Submission"
+sidebarTitle: "Fast"
+description: "Submit transactions across Solana, BSC, Base, Sui, and Monad via BlockRazor's global acceleration network for rapid on-chain processing."
+---
+
+BlockRazor's Fast mode is purpose-built for applications where latency is the difference between a successful trade and a missed opportunity. It routes your transactions through a globally distributed acceleration network, delivering them simultaneously to highly staked validators for rapid on-chain inclusion. Rather than paying gas through the standard fee market, Fast mode embeds the tip directly inside the transaction itself — forwarded to a designated address — giving validators a direct incentive to prioritize your transaction.
+
+## How Fast Mode Works
+
+<Steps>
+  <Step title="Build your transaction">
+    Construct a standard signed transaction for your target chain, embedding the tip payment to BlockRazor's designated tip address inside the transaction body.
+  </Step>
+  <Step title="Submit to BlockRazor's Fast endpoint">
+    Send the signed transaction to the BlockRazor Fast API. Your request is instantly fanned out across BlockRazor's globally distributed relay nodes.
+  </Step>
+  <Step title="Validator delivery & block inclusion">
+    BlockRazor forwards the transaction to a network of highly staked validators simultaneously. The embedded tip incentivizes validators to include your transaction in the next available block.
+  </Step>
+</Steps>
+
+<Info>
+  In Fast mode, the tip is not paid as a separate EIP-1559 priority fee — it must be **embedded within the transaction itself** as a transfer to BlockRazor's designated tip address. Refer to the API reference for each chain's tip address.
+</Info>
+
+## Supported Chains & Rate Limits
+
+<CardGroup cols={2}>
+  <Card title="Solana" icon="s">
+    `Send Transaction` and `Send Transaction v2`. Default limit for new users: **3 TPS**.
+  </Card>
+  <Card title="BSC" icon="circle-b">
+    `eth_sendRawTransaction` and `eth_sendRawTransaction v2`. Default limit for new users: **10 TPS**.
+  </Card>
+  <Card title="Base" icon="layer-group">
+    `eth_sendRawTransaction`. Default limit for new users: **10 TPS**.
+  </Card>
+  <Card title="Sui" icon="circle-dot">
+    `ExecuteTransactionBlock`. Contact BlockRazor for limit details.
+  </Card>
+  <Card title="Monad" icon="bolt">
+    Standard transaction submission via the Fast acceleration network.
+  </Card>
+</CardGroup>
+
+<Note>
+  New registered users can also use **SendTx** — a tip-free variant of Fast mode — with a limit of 10 transactions per 5 seconds and 10 transactions per day. This is a great way to evaluate the service before subscribing. The full Fast-Tx plan for BSC is **$500/month**.
+</Note>
+
+## Sending a Fast Transaction
+
+<Tabs>
+  <Tab title="BSC">
+    On BSC, Fast mode uses the standard `eth_sendRawTransaction` JSON-RPC method. The tip must be included as a value transfer to BlockRazor's designated BSC tip address within the same transaction or as a separate transaction in the batch.
+
+    ### cURL
+
+    ```bash
+    curl -X POST https://fast.blockrazor.io/bsc \
+      -H 'Content-Type: application/json' \
+      -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "eth_sendRawTransaction",
+        "params": ["0xSIGNED_TX_HEX_WITH_TIP"],
+        "id": 1
+      }'
+    ```
+
+    ### ethers.js
+
+    ```javascript
+    import { ethers } from "ethers";
+
+    // Connect to BlockRazor Fast endpoint for BSC
+    const provider = new ethers.JsonRpcProvider(
+      "https://fast.blockrazor.io/bsc?auth=YOUR_AUTH_TOKEN"
+    );
+
+    const wallet = new ethers.Wallet("YOUR_PRIVATE_KEY", provider);
+
+    // The tip transfer to BlockRazor's designated address must be
+    // embedded within the transaction itself.
+    const tx = await wallet.sendTransaction({
+      to: "0xBLOCKRAZOR_TIP_ADDRESS",
+      value: ethers.parseEther("0.001"), // tip amount
+    });
+
+    console.log("Fast transaction submitted:", tx.hash);
+    await tx.wait();
+    console.log("Transaction confirmed in block:", tx.blockNumber);
+    ```
+
+    ### Batch Submission (v2)
+
+    ```javascript
+    import { ethers } from "ethers";
+
+    const provider = new ethers.JsonRpcProvider(
+      "https://fast.blockrazor.io/bsc?auth=YOUR_AUTH_TOKEN"
+    );
+
+    // eth_sendRawTransaction v2 accepts an array of signed transactions
+    const signedTxs = ["0xSIGNED_TX_1", "0xSIGNED_TX_2"];
+
+    const result = await provider.send("eth_sendRawTransaction", signedTxs);
+    console.log("Batch submitted:", result);
+    ```
+  </Tab>
+
+  <Tab title="Solana">
+    On Solana, Fast mode accepts standard base-64 encoded signed transactions. The tip is embedded as a SOL transfer to BlockRazor's Solana tip account within the transaction instructions.
+
+    ### cURL
+
+    ```bash
+    curl -X POST https://fast.blockrazor.io/solana \
+      -H 'Content-Type: application/json' \
+      -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "sendTransaction",
+        "params": [
+          "BASE64_ENCODED_SIGNED_TRANSACTION",
+          {
+            "encoding": "base64",
+            "skipPreflight": true,
+            "maxRetries": 0
+          }
+        ],
+        "id": 1
+      }'
+    ```
+
+    ### JavaScript (@solana/web3.js)
+
+    ```javascript
+    import {
+      Connection,
+      Keypair,
+      SystemProgram,
+      Transaction,
+      sendAndConfirmTransaction,
+      LAMPORTS_PER_SOL,
+      PublicKey,
+    } from "@solana/web3.js";
+
+    const connection = new Connection(
+      "https://fast.blockrazor.io/solana?auth=YOUR_AUTH_TOKEN",
+      "confirmed"
+    );
+
+    const payer = Keypair.fromSecretKey(YOUR_SECRET_KEY);
+    const blockrazorTipAccount = new PublicKey("BLOCKRAZOR_SOLANA_TIP_ADDRESS");
+
+    const transaction = new Transaction();
+
+    // Your primary instruction
+    transaction.add(
+      SystemProgram.transfer({
+        fromPubkey: payer.publicKey,
+        toPubkey: new PublicKey("RECIPIENT_ADDRESS"),
+        lamports: 0.01 * LAMPORTS_PER_SOL,
+      })
+    );
+
+    // Embed the tip to BlockRazor's tip account
+    transaction.add(
+      SystemProgram.transfer({
+        fromPubkey: payer.publicKey,
+        toPubkey: blockrazerTipAccount,
+        lamports: 1000, // tip in lamports
+      })
+    );
+
+    const signature = await sendAndConfirmTransaction(connection, transaction, [
+      payer,
+    ]);
+    console.log("Fast Solana transaction confirmed:", signature);
+    ```
+  </Tab>
+
+  <Tab title="Base">
+    On Base, Fast mode uses `eth_sendRawTransaction` with the tip embedded in the transaction value.
+
+    ### cURL
+
+    ```bash
+    curl -X POST https://fast.blockrazor.io/base \
+      -H 'Content-Type: application/json' \
+      -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "eth_sendRawTransaction",
+        "params": ["0xSIGNED_TX_HEX_WITH_TIP"],
+        "id": 1
+      }'
+    ```
+
+    ### ethers.js
+
+    ```javascript
+    import { ethers } from "ethers";
+
+    const provider = new ethers.JsonRpcProvider(
+      "https://fast.blockrazor.io/base?auth=YOUR_AUTH_TOKEN"
+    );
+
+    const wallet = new ethers.Wallet("YOUR_PRIVATE_KEY", provider);
+
+    const tx = await wallet.sendTransaction({
+      to: "0xBLOCKRAZOR_BASE_TIP_ADDRESS",
+      value: ethers.parseEther("0.0005"),
+    });
+
+    console.log("Fast Base transaction submitted:", tx.hash);
+    await tx.wait();
+    ```
+
+    <Note>
+      Base Fast mode has a default limit of **10 TPS** for new registered users. Subscribe to the Fast-Tx plan to remove this limit.
+    </Note>
+  </Tab>
+
+  <Tab title="Sui">
+    On Sui, Fast mode wraps the standard `sui_executeTransactionBlock` method and routes it through BlockRazor's acceleration network.
+
+    ### cURL
+
+    ```bash
+    curl -X POST https://fast.blockrazor.io/sui \
+      -H 'Content-Type: application/json' \
+      -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "sui_executeTransactionBlock",
+        "params": [
+          "BASE64_TX_BYTES",
+          ["BASE64_SIGNATURE"],
+          {
+            "showInput": true,
+            "showEffects": true,
+            "showEvents": true
+          },
+          "WaitForLocalExecution"
+        ],
+        "id": 1
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+## API Reference
+
+<CardGroup cols={3}>
+  <Card title="Solana Send Transaction" icon="book" href="/api-reference/fast/solana-send-transaction">
+    Full parameter reference for Solana Fast submission.
+  </Card>
+  <Card title="BSC eth_sendRawTransaction" icon="book" href="/api-reference/fast/bsc-eth-send-raw-transaction">
+    Full parameter reference for BSC Fast submission.
+  </Card>
+  <Card title="Sui ExecuteTransactionBlock" icon="book" href="/api-reference/fast/sui-execute-transaction-block">
+    Full parameter reference for Sui Fast submission.
+  </Card>
+</CardGroup>

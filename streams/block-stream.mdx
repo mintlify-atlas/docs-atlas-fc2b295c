@@ -1,0 +1,218 @@
+---
+title: "BlockRazor Block Stream: Low-Latency Block Data Feed"
+sidebarTitle: "Block Stream"
+description: "Low-latency confirmed block data across Solana, BSC, and Base — from raw shreds to full blocks — powering post-confirmation logic for trading systems."
+---
+
+BlockRazor Block Stream delivers confirmed block data to your application with the lowest possible latency, enabling your trading programs to react to on-chain events the moment a block is finalized. Whether you are monitoring signal transactions, executing post-confirmation logic, or tracking account state changes, Block Stream provides chain-native feeds tailored to each network's architecture. Supported chains include Solana, BNB Smart Chain (BSC), and Base.
+
+<Tabs>
+  <Tab title="Solana">
+    Solana's high-throughput architecture requires specialized streaming approaches. BlockRazor offers two distinct Solana block stream products: **Shred Stream** for the lowest possible raw data latency, and **Geyser Stream** for structured on-chain data across accounts, slots, blocks, and transactions.
+
+    ### Shred Stream
+
+    Shred Stream transmits raw shred data — the smallest unit of block data in Solana's network — as shreds are produced by the leader validator. This means your application receives block fragments before the full block is assembled, giving you the earliest possible view of new on-chain activity.
+
+    <CardGroup cols={2}>
+      <Card title="Data Type" icon="database">
+        Raw shred data from leader validators
+      </Card>
+      <Card title="Pricing" icon="tag">
+        $500 / stream / month
+      </Card>
+    </CardGroup>
+
+    ### Geyser Stream
+
+    Geyser Stream provides real-time structured transmission of on-chain Solana data, including **accounts**, **slots**, **blocks**, and **transactions**. It is ideal for applications that need a full, semantically rich view of the chain rather than raw shred bytes.
+
+    Geyser Stream is priced by monthly data volume (TiB):
+
+    | Monthly Volume | Price |
+    |---|---|
+    | 5 TiB | $250 / month |
+    | 10 TiB | $500 / month |
+    | 50 TiB | $2,500 / month |
+    | 100 TiB | $4,750 / month |
+    | 150 TiB | $6,750 / month |
+    | 200 TiB | $8,500 / month |
+    | 250 TiB | $10,000 / month |
+
+    **Subscribing to Geyser Stream (Rust)**
+
+    The following example uses the Geyser gRPC plugin interface to subscribe to transaction updates on Solana:
+
+    ```rust
+    use yellowstone_grpc_client::GeyserGrpcClient;
+    use yellowstone_grpc_proto::prelude::*;
+    use std::collections::HashMap;
+
+    #[tokio::main]
+    async fn main() -> anyhow::Result<()> {
+        let mut client = GeyserGrpcClient::connect(
+            "https://geyser.blockrazor.io",
+            Some("YOUR_AUTH_TOKEN".to_string()),
+            None,
+        )?;
+
+        let mut transactions = HashMap::new();
+        transactions.insert(
+            "client_id".to_string(),
+            SubscribeRequestFilterTransactions {
+                vote: Some(false),
+                failed: Some(false),
+                ..Default::default()
+            },
+        );
+
+        let request = SubscribeRequest {
+            transactions,
+            ..Default::default()
+        };
+
+        let (_, mut stream) = client.subscribe_with_request(Some(request)).await?;
+
+        while let Some(msg) = stream.next().await {
+            match msg {
+                Ok(update) => println!("Block update: {:?}", update),
+                Err(e) => eprintln!("Stream error: {}", e),
+            }
+        }
+
+        Ok(())
+    }
+    ```
+
+    For full API details, see the [Solana Block Stream API Reference](/api-reference/streams/block-stream-solana).
+  </Tab>
+
+  <Tab title="BSC">
+    BlockRazor's BSC Block Stream subscribes you to new block events on the BNB Smart Chain via the **NewBlocks** stream. Each block payload is pushed to your client the moment it is confirmed, carrying full block header and transaction data from BlockRazor's globally distributed node infrastructure.
+
+    <CardGroup cols={2}>
+      <Card title="Stream Name" icon="cube">
+        NewBlocks
+      </Card>
+      <Card title="Pricing" icon="tag">
+        $500 / stream / month
+      </Card>
+    </CardGroup>
+
+    <Note>
+      BlockRazor's BSC nodes are strategically co-located with validators to minimize the time between block production and data delivery to your application.
+    </Note>
+
+    **Subscribing to NewBlocks Stream (Go)**
+
+    The following example connects to the BSC NewBlocks stream over gRPC:
+
+    ```go
+    package main
+
+    import (
+        "context"
+        "fmt"
+        "log"
+
+        "google.golang.org/grpc"
+        "google.golang.org/grpc/metadata"
+    )
+
+    func main() {
+        conn, err := grpc.Dial(
+            "blocks.blockrazor.io:443",
+            grpc.WithTransportCredentials(credentials.NewTLS(nil)),
+        )
+        if err != nil {
+            log.Fatalf("Failed to connect: %v", err)
+        }
+        defer conn.Close()
+
+        ctx := metadata.AppendToOutgoingContext(
+            context.Background(),
+            "authorization", "Bearer YOUR_AUTH_TOKEN",
+        )
+
+        // Subscribe to new BSC blocks
+        stream, err := client.SubscribeNewBlocks(ctx, &SubscribeBlocksRequest{})
+        if err != nil {
+            log.Fatalf("Failed to subscribe: %v", err)
+        }
+
+        for {
+            block, err := stream.Recv()
+            if err != nil {
+                log.Fatalf("Stream error: %v", err)
+            }
+            fmt.Printf("New BSC block: #%d hash=%s\n", block.Number, block.Hash)
+        }
+    }
+    ```
+
+    For full API details, see the [BSC Block Stream API Reference](/api-reference/streams/block-stream-bsc).
+  </Tab>
+
+  <Tab title="Base">
+    BlockRazor provides two block stream options for the Base network: the standard **GetBlockStream** for confirmed block data, and **GetFlashBlockStream** for pre-confirmation flash block data at an even lower latency.
+
+    ### GetBlockStream
+
+    GetBlockStream delivers confirmed Base block data with low latency. It is suitable for applications that require finalized block data and operate on confirmed state.
+
+    <CardGroup cols={2}>
+      <Card title="Stream Name" icon="cube">
+        GetBlockStream
+      </Card>
+      <Card title="Pricing" icon="tag">
+        $300 / stream / month
+      </Card>
+    </CardGroup>
+
+    ### GetFlashBlockStream
+
+    GetFlashBlockStream provides access to Base's FlashBlock data — partial block information made available before full block confirmation. This stream is designed for latency-critical applications that need to act on block data as early as physically possible.
+
+    <CardGroup cols={2}>
+      <Card title="Stream Name" icon="bolt">
+        GetFlashBlockStream
+      </Card>
+      <Card title="Pricing" icon="tag">
+        $250 / stream / month
+      </Card>
+    </CardGroup>
+
+    <Tip>
+      Use GetFlashBlockStream when your strategy depends on reacting to Base block data before competing participants. The lower price combined with earlier data delivery makes it the preferred option for most latency-sensitive Base integrations.
+    </Tip>
+
+    For full API details, see the [Base Block Stream API Reference](/api-reference/streams/block-stream-base).
+  </Tab>
+</Tabs>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Post-Confirmation Logic" icon="check-circle">
+    Trigger downstream actions — such as placing follow-up orders, updating internal state, or sending notifications — immediately after a block is confirmed on-chain.
+  </Card>
+  <Card title="Signal Transaction Monitoring" icon="magnifying-glass">
+    Watch for specific confirmed transactions from wallets or contracts of interest and react within the same or next block window.
+  </Card>
+  <Card title="Arbitrage Execution" icon="arrows-rotate">
+    Detect price-moving transactions the moment their block is confirmed and execute cross-venue arbitrage before prices rebalance.
+  </Card>
+  <Card title="State Synchronization" icon="rotate">
+    Keep your off-chain world state (prices, balances, positions) continuously synchronized with the latest confirmed on-chain data.
+  </Card>
+</CardGroup>
+
+## Stream Comparison
+
+| Chain | Stream | Data Type | Pricing |
+|---|---|---|---|
+| Solana | Shred Stream | Raw shred fragments | $500/stream/month |
+| Solana | Geyser Stream | Accounts, slots, blocks, txs | From $250/month (5 TiB) |
+| BSC | NewBlocks | Full confirmed blocks | $500/stream/month |
+| Base | GetBlockStream | Confirmed block data | $300/stream/month |
+| Base | GetFlashBlockStream | Pre-confirmation flash blocks | $250/stream/month |

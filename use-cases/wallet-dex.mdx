@@ -1,0 +1,96 @@
+---
+title: "BlockRazor for Wallets and DEX Platforms Explained"
+sidebarTitle: "Wallet / DEX"
+description: "Protect users from MEV, eliminate gas barriers with sponsored transactions, and earn rebates on every successful trade — all from one integration."
+---
+
+Wallets and decentralized exchanges sit at the centre of the user experience in Web3. Every transaction a user submits passes through your infrastructure, which means the quality of that infrastructure directly shapes whether users feel safe, how quickly their trades confirm, and whether they return. BlockRazor gives wallet providers and DEX platforms two purpose-built services — RPC mode with built-in MEV protection and a Gas Sponsor layer — that let you ship a materially better experience without re-architecting your stack.
+
+## Why wallets and DEXs choose BlockRazor
+
+<CardGroup cols={2}>
+  <Card title="MEV Protection via RPC" icon="shield-halved" href="/transaction-submission/rpc">
+    Drop-in replacement for `eth_sendRawTransaction`. Transactions are routed through BlockRazor's protected relay so they land on-chain without being front-run or sandwiched.
+  </Card>
+  <Card title="Gas Sponsor" icon="gas-pump" href="/transaction-submission/gas-sponsor">
+    Cover gas fees on behalf of your users. New users who have never held native tokens can execute their very first transaction the moment they connect a wallet.
+  </Card>
+</CardGroup>
+
+## Core benefits
+
+<Steps>
+  <Step title="MEV protection out of the box">
+    Integrating the BlockRazor RPC endpoint replaces your existing `eth_sendRawTransaction` call with an MEV-protected equivalent. Pending transactions are kept private from block builders and validators until inclusion, eliminating the window in which searchers can extract value at your users' expense.
+  </Step>
+  <Step title="Rebates on successful transactions">
+    BlockRazor's RPC mode participates in an orderflow auction. When your transactions are included, a portion of the captured MEV value is returned to you as a rebate — creating a direct revenue stream from the transaction flow you already generate.
+  </Step>
+  <Step title="Gasless onboarding with Gas Sponsor">
+    Remove the single biggest friction point in Web3 onboarding. With Gas Sponsor, your platform pays the native gas fee on behalf of the user, meaning a brand-new wallet holder can swap, bridge, or interact with a contract the moment they arrive — no bridging ETH or BNB first.
+  </Step>
+</Steps>
+
+## Chain support
+
+The table below shows which BlockRazor services are available per chain for wallet and DEX integrations.
+
+| Chain    | RPC (MEV Protection) | Gas Sponsor |
+|----------|:--------------------:|:-----------:|
+| BSC      | ✓                    | ✓           |
+| Ethereum | ✓                    | ✓           |
+| Base     | ✓                    | —           |
+| Solana   | —                    | ✓           |
+
+<Note>
+  Base RPC integration is available but operates at a rate limit of 1 transaction per 5 seconds for new registered users. Contact the BlockRazor team to discuss higher throughput tiers.
+</Note>
+
+## Integration overview
+
+<Tabs>
+  <Tab title="RPC (Ethereum / BSC)">
+    Replace your existing JSON-RPC endpoint with the BlockRazor protected endpoint. The method signature is identical to the standard — no changes to your transaction-building logic are required.
+
+    ```bash
+    # Standard submission — just swap the endpoint URL
+    curl -X POST https://rpc.blockrazor.io/<chain>/<api-key> \
+      -H "Content-Type: application/json" \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "eth_sendRawTransaction",
+        "params": ["0x<signed_tx_hex>"],
+        "id": 1
+      }'
+    ```
+  </Tab>
+  <Tab title="Gas Sponsor">
+    Gas Sponsor wraps the standard transaction submission flow with a sponsorship layer. Your backend signs a sponsorship approval; BlockRazor covers the gas and settles the accounting against your subscription balance.
+
+    ```bash
+    curl -X POST https://rpc.blockrazor.io/<chain>/<api-key>/sponsor \
+      -H "Content-Type: application/json" \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "eth_sendRawTransaction",
+        "params": ["0x<signed_tx_hex>"],
+        "id": 1
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+  If you operate on both BSC and Ethereum, a single BlockRazor account covers both chains. You can manage API keys and monitor rebate payouts from one dashboard.
+</Tip>
+
+## Recommended services
+
+<CardGroup cols={2}>
+  <Card title="RPC Submission" icon="plug" href="/transaction-submission/rpc">
+    Standard `eth_sendRawTransaction` with MEV protection and rebates. Available on BSC, Ethereum, and Base.
+  </Card>
+  <Card title="Gas Sponsor" icon="coins" href="/transaction-submission/gas-sponsor">
+    Sponsor native gas fees for your users. Available on BSC, Ethereum, and Solana.
+  </Card>
+</CardGroup>

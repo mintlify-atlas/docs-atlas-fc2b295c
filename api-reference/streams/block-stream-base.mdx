@@ -1,0 +1,257 @@
+---
+title: "Base Block Stream — BlockStream & FlashBlock Subscriptions"
+sidebarTitle: "Base Block Stream"
+description: "Subscribe to BlockRazor's low-latency Base block data or ultra-low-latency FlashBlock pre-confirmation data over WebSocket for real-time chain monitoring."
+---
+
+BlockRazor offers two complementary block streaming products for the Base network: **GetBlockStream** for standard low-latency confirmed block data, and **GetFlashBlockStream** for ultra-low-latency pre-confirmation FlashBlock data sourced directly from the Base sequencer. Both streams are delivered over WebSocket and target applications that need to react to on-chain events as quickly as possible — from arbitrage bots and copy-trading systems to real-time dashboards and order management systems.
+
+<Info>
+  **FlashBlock** is a pre-confirmation block emitted by the Base sequencer before the full block is finalized and published to the network. FlashBlocks arrive earlier than standard confirmed blocks, giving subscribers a significant time advantage for latency-sensitive strategies.
+</Info>
+
+## Stream Comparison
+
+| Feature          | GetBlockStream                    | GetFlashBlockStream                          |
+| ---------------- | --------------------------------- | -------------------------------------------- |
+| Data type        | Confirmed Base blocks             | Pre-confirmation sequencer FlashBlocks       |
+| Latency profile  | Low                               | Ultra-low (pre-confirmation)                 |
+| Helper method    | —                                 | `ParseFlashBlock`                            |
+| Pricing          | $300 / stream / month             | $250 / stream / month                        |
+
+## Connection Details
+
+| Property    | Value                                                              |
+| ----------- | ------------------------------------------------------------------ |
+| Protocol    | WebSocket (WSS)                                                    |
+| Endpoint    | `wss://blockstream.blockrazor.io/base?auth=YOUR_AUTH_TOKEN`        |
+| Chain       | Base (OP Stack / Ethereum L2)                                      |
+
+<Note>
+  Replace `YOUR_AUTH_TOKEN` with the API token from your BlockRazor dashboard. Both stream types share the same base endpoint — the method you call after connection determines which stream you receive.
+</Note>
+
+---
+
+<Tabs>
+  <Tab title="BlockStream">
+    ## GetBlockStream
+
+    `GetBlockStream` subscribes to fully confirmed Base blocks as they are published. Each message contains the complete block payload including all transactions, the block number, hash, and timestamp. This stream is well-suited for applications that need high confidence in data finality while still maintaining low latency.
+
+    ### Pricing
+
+    **$300 / stream / month** — with multi-month discounts up to 20% for 12-month subscriptions.
+
+    ### Code Example
+
+    ```javascript
+    const WebSocket = require('ws');
+
+    const ws = new WebSocket(
+      'wss://blockstream.blockrazor.io/base?auth=YOUR_AUTH_TOKEN'
+    );
+
+    ws.on('open', () => {
+      console.log('Connected to Base BlockStream');
+      // Request the standard confirmed block stream
+      ws.send(JSON.stringify({ method: 'GetBlockStream' }));
+    });
+
+    ws.on('message', (data) => {
+      const block = JSON.parse(data);
+      console.log(
+        'New Base block:', block.number,
+        'hash:', block.hash,
+        'txs:', block.transactions.length,
+        'timestamp:', block.timestamp
+      );
+    });
+
+    ws.on('error', (err) => console.error('BlockStream error:', err));
+    ws.on('close', () => console.log('BlockStream connection closed'));
+    ```
+
+    ### Response Fields
+
+    <ResponseField name="number" type="string" required>
+      Block number as a hex-encoded string (e.g. `"0x7A1B2C"`). Decode with `parseInt(number, 16)` for numeric use.
+    </ResponseField>
+
+    <ResponseField name="hash" type="string" required>
+      32-byte hex block hash uniquely identifying this block on Base.
+    </ResponseField>
+
+    <ResponseField name="timestamp" type="string" required>
+      Unix timestamp of block production, hex-encoded.
+    </ResponseField>
+
+    <ResponseField name="transactions" type="array" required>
+      Array of confirmed transaction objects in this block.
+
+      <Expandable title="Transaction object fields">
+        <ResponseField name="hash" type="string">Transaction hash.</ResponseField>
+        <ResponseField name="from" type="string">Sender address.</ResponseField>
+        <ResponseField name="to" type="string">Recipient or contract address.</ResponseField>
+        <ResponseField name="value" type="string">ETH value in wei, hex-encoded.</ResponseField>
+        <ResponseField name="gas" type="string">Gas limit, hex-encoded.</ResponseField>
+        <ResponseField name="gasPrice" type="string">Effective gas price in wei, hex-encoded.</ResponseField>
+        <ResponseField name="data" type="string">ABI-encoded calldata.</ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    ### Example Message
+
+    ```json
+    {
+      "number": "0x7A1B2C",
+      "hash": "0xa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+      "timestamp": "0x6613A100",
+      "transactions": [
+        {
+          "hash": "0xb2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
+          "from": "0xAbCdEf1234567890AbCdEf1234567890AbCdEf12",
+          "to": "0x4200000000000000000000000000000000000006",
+          "value": "0xDE0B6B3A7640000",
+          "gas": "0x5208",
+          "gasPrice": "0x77359400",
+          "data": "0x"
+        }
+      ]
+    }
+    ```
+  </Tab>
+
+  <Tab title="FlashBlockStream">
+    ## GetFlashBlockStream
+
+    `GetFlashBlockStream` subscribes to **FlashBlocks** — pre-confirmation blocks emitted by the Base sequencer before the full block is published to the network. FlashBlocks contain a partial or complete set of transactions that the sequencer has committed to including in the next block, allowing subscribers to act on this information before the rest of the network sees the confirmed block.
+
+    Use the `ParseFlashBlock` helper function to decode the raw FlashBlock payload into a structured object that mirrors the standard block format.
+
+    ### Pricing
+
+    **$250 / stream / month** — with multi-month discounts up to 20% for 12-month subscriptions.
+
+    <Note>
+      FlashBlocks represent the sequencer's current ordering intent and may differ slightly from the finalized block in edge cases such as sequencer restarts. Always verify critical state transitions against confirmed blocks.
+    </Note>
+
+    ### Code Example
+
+    ```javascript
+    const WebSocket = require('ws');
+
+    const ws = new WebSocket(
+      'wss://blockstream.blockrazor.io/base?auth=YOUR_AUTH_TOKEN'
+    );
+
+    /**
+     * ParseFlashBlock decodes a raw FlashBlock message payload
+     * into a structured block-like object.
+     *
+     * @param {string|Buffer} rawData - Raw WebSocket message data
+     * @returns {Object} Parsed FlashBlock with number, hash, transactions, timestamp
+     */
+    function ParseFlashBlock(rawData) {
+      const payload = JSON.parse(rawData);
+      return {
+        number: payload.block_number,
+        hash: payload.block_hash,
+        timestamp: payload.timestamp,
+        transactions: payload.txs || [],
+        isFlashBlock: true,
+        sequencerCommit: payload.sequencer_commit,
+      };
+    }
+
+    ws.on('open', () => {
+      console.log('Connected to Base FlashBlockStream');
+      // Request the FlashBlock pre-confirmation stream
+      ws.send(JSON.stringify({ method: 'GetFlashBlockStream' }));
+    });
+
+    ws.on('message', (data) => {
+      const flashBlock = ParseFlashBlock(data);
+      console.log(
+        'FlashBlock received — block:', flashBlock.number,
+        'txs:', flashBlock.transactions.length,
+        'sequencer commit:', flashBlock.sequencerCommit
+      );
+    });
+
+    ws.on('error', (err) => console.error('FlashBlockStream error:', err));
+    ws.on('close', () => console.log('FlashBlockStream connection closed'));
+    ```
+
+    <Tip>
+      Compare `flashBlock.number` against your last confirmed block number to detect new sequencer commitments without waiting for full block finalization. This lets you pipeline transaction analysis and position adjustments ahead of the crowd.
+    </Tip>
+
+    ### Response Fields (ParseFlashBlock output)
+
+    <ResponseField name="number" type="string" required>
+      Block number this FlashBlock targets, hex-encoded string (e.g. `"0x7A1B2D"`).
+    </ResponseField>
+
+    <ResponseField name="hash" type="string" required>
+      Sequencer-assigned block hash for this pre-confirmation block.
+    </ResponseField>
+
+    <ResponseField name="timestamp" type="string" required>
+      Unix timestamp at which the sequencer committed this FlashBlock, hex-encoded.
+    </ResponseField>
+
+    <ResponseField name="transactions" type="array" required>
+      Array of transaction objects included in this FlashBlock. Same field schema as the standard BlockStream transaction objects.
+    </ResponseField>
+
+    <ResponseField name="isFlashBlock" type="boolean" required>
+      Always `true` for FlashBlock messages — useful for distinguishing stream types if you handle both in one handler.
+    </ResponseField>
+
+    <ResponseField name="sequencerCommit" type="string" required>
+      Sequencer signature or commitment identifier for this FlashBlock payload.
+    </ResponseField>
+
+    ### Example Parsed FlashBlock
+
+    ```json
+    {
+      "number": "0x7A1B2D",
+      "hash": "0xc3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+      "timestamp": "0x6613A102",
+      "transactions": [
+        {
+          "hash": "0xd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5",
+          "from": "0x1234567890AbCdEf1234567890AbCdEf12345678",
+          "to": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          "value": "0x0",
+          "gas": "0x493E0",
+          "gasPrice": "0x77359400",
+          "data": "0xa9059cbb..."
+        }
+      ],
+      "isFlashBlock": true,
+      "sequencerCommit": "0xe5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Pricing & Discounts
+
+| Stream              | Monthly Price         |
+| ------------------- | --------------------- |
+| GetBlockStream      | $300 / stream / month |
+| GetFlashBlockStream | $250 / stream / month |
+
+| Subscription Period | Discount |
+| ------------------- | -------- |
+| 1 month             | —        |
+| 3 months            | 5% off   |
+| 6 months            | 10% off  |
+| 9 months            | 15% off  |
+| 12 months           | 20% off  |

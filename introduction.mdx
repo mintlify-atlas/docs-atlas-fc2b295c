@@ -1,0 +1,66 @@
+---
+title: "BlockRazor: Web3 Transaction Infrastructure Overview"
+sidebarTitle: "Introduction"
+description: "Discover BlockRazor's core service pillars — Transaction Submission, Streams, and Block Builder — powering wallets, DEXs, bots, and quant systems across major chains."
+---
+
+BlockRazor is a leading Web3 transaction infrastructure provider built on top-tier distributed network communication technology and architecture. Designed to serve a diverse range of on-chain participants — including wallets, decentralized exchanges (DEXs), trading bots, searchers, and quantitative trading systems — BlockRazor delivers reliable, low-latency infrastructure across Ethereum, BSC, Solana, and Base. Its three core service pillars help clients achieve optimal trade execution at every layer of the stack.
+
+## Core Service Pillars
+
+<CardGroup cols={3}>
+  <Card title="Transaction Submission" icon="paper-plane" href="/transaction-submission/rpc">
+    Multiple submission modes — RPC, Gas Sponsor, Fast, and Bundle — tailored to your exact speed, cost, and MEV-protection requirements.
+  </Card>
+  <Card title="Streams" icon="satellite-dish" href="/streams/mempool">
+    High-performance data streams including Mempool, Block Stream, Network Fee Stream, and Node Stream for real-time on-chain awareness.
+  </Card>
+  <Card title="Block Builder" icon="cube" href="/block-builder/overview">
+    BSC block building service based on PBS architecture with a historical cumulative block production rate of 37%, ranking first across the entire BSC chain.
+  </Card>
+</CardGroup>
+
+## Transaction Submission
+
+BlockRazor offers four distinct transaction submission modes, each engineered for a different client profile:
+
+- **RPC** — Standard JSON-RPC methods with integrated MEV protection and support for real-time rebates.
+- **Gas Sponsor** — Gas fee sponsorship for users who lack sufficient native tokens, dramatically improving onboarding and trading experience.
+- **Fast** — A global acceleration network that boosts on-chain transaction speeds, ideal for users with extreme latency requirements.
+- **Bundle** — Execute transactions within the same block as a "signal transaction" via Bundles, built specifically for backrunning, copy trading, and token sniping.
+
+## Streams
+
+BlockRazor's streaming layer delivers real-time on-chain data with minimal latency across multiple feed types:
+
+- **Mempool** — Low-latency pushes of pending transactions, enabling users to monitor signal transactions for backrunning, copy trading, and sniping in real time.
+- **Block Stream** — Low-latency block data so trading programs can monitor confirmed signal transactions or other transactions as they land.
+- **Network Fee Stream** — Real-time pushes of Gas Price, Priority Fee, or Tips based on recent historical block data.
+- **Node Stream** — Synchronize data with full nodes for low latency and keep the world state updated in real time.
+
+## Block Builder
+
+BlockRazor's [Block Builder](/block-builder/overview) provides BSC block building services based on the PBS (Proposer-Builder Separation) architecture. Deployed across multiple regions worldwide with low-latency communication to validators, Block Builder runs multiple algorithms to maximize block value and construct competitive blocks. BlockRazor's Block Builder has achieved a historical cumulative block production rate of **37%**, ranking first across the entire BSC chain.
+
+<Tip>
+  Track the real-time block production rate on the [BNB Smart Chain MEV Stats dashboard](https://dune.com/bnbchain/bnb-smart-chain-mev-stats) powered by Dune Analytics.
+</Tip>
+
+## Supported Chains
+
+BlockRazor services are available across four major public chains. Not every service is available on every chain — see the [Supported Chains](/supported-chains) page for a full compatibility matrix.
+
+<CardGroup cols={4}>
+  <Card title="Ethereum" icon="ethereum">
+    RPC, Gas Sponsor, Bundle, Private Mempool
+  </Card>
+  <Card title="BSC" icon="link">
+    Full suite: RPC, Fast, Gas Sponsor, Bundle, all Streams, Block Builder
+  </Card>
+  <Card title="Solana" icon="sun">
+    Fast, Gas Sponsor, Block Stream, Network Fee Stream
+  </Card>
+  <Card title="Base" icon="circle-dot">
+    RPC, Fast, Block Stream
+  </Card>
+</CardGroup>

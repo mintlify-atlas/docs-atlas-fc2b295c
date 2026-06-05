@@ -1,0 +1,125 @@
+---
+title: "BlockRazor for MEV Searchers: Arbitrage and Backrunning"
+sidebarTitle: "Searcher"
+description: "Access private orderflow, execute atomic bundles, and connect to BlockRazor's BSC Block Builder — infrastructure purpose-built for MEV searchers."
+---
+
+MEV searching is an unforgiving discipline. Capturing an arbitrage opportunity, executing a profitable backrun, or landing a snipe ahead of the competition demands the earliest possible view of pending orderflow, the ability to execute transactions atomically, and a direct path to the validators building the next block. BlockRazor's infrastructure stack is designed end-to-end for this workflow: private mempool access feeds your detection layer, Bundle mode handles atomic execution, and the BlockRazor Block Builder — responsible for 37% of historical block production on BSC — maximises the probability your bundle lands.
+
+## Why searchers choose BlockRazor
+
+<CardGroup cols={3}>
+  <Card title="Private Mempool Stream" icon="eye" href="/streams/mempool">
+    Subscribe to BlockRazor's private orderflow stream — pending transactions submitted via the BlockRazor RPC — to see signal opportunities before they reach the public mempool.
+  </Card>
+  <Card title="Bundle Submission" icon="layer-group" href="/transaction-submission/bundle">
+    Submit atomic bundles that execute alongside a target transaction in the same block. Supports both project-builder and Searcher bid modes on BSC and Ethereum.
+  </Card>
+  <Card title="Block Builder" icon="cube" href="/block-builder/overview">
+    Submit bundles directly to the BlockRazor Block Builder, which holds a 37% cumulative block production rate on BSC — the highest of any builder on the chain.
+  </Card>
+</CardGroup>
+
+## Core benefits
+
+<Steps>
+  <Step title="Earliest signal with private orderflow">
+    The Private Mempool stream delivers transactions that users have submitted via the BlockRazor RPC endpoint. Because these transactions travel through BlockRazor's protected relay rather than the public P2P network, you observe them earlier and with less competition than you would from a public mempool feed. This is the signal source for arbitrage detection, backrun construction, and snipe targeting.
+  </Step>
+  <Step title="Atomic execution with Bundle mode">
+    Once you have identified a target transaction, Bundle mode lets you submit a set of transactions that must land in the same block, in a defined order, immediately after the target. If the bundle cannot be placed, it is not included at all — eliminating the risk of partial execution where your transaction fires without the expected context. On BSC, use `eth_sendMevBundle` in Searcher mode; on Ethereum, use `eth_sendBid`.
+  </Step>
+  <Step title="Direct Block Builder connectivity for maximum win rate">
+    Submitting through the BlockRazor Block Builder bypasses general validator gossip and places your bundle directly in the hands of the builder that wins the most blocks on BSC. With a 37% historical block production rate — first across the entire BSC chain — the BlockRazor Block Builder gives your bundles the highest realistic probability of landing in the target block.
+  </Step>
+</Steps>
+
+## Chain and service matrix
+
+| Use Case           | Required Service                 | Supported Chains  |
+|--------------------|----------------------------------|-------------------|
+| Signal detection   | Private Mempool Stream           | BSC, Ethereum     |
+| Backrunning        | Bundle (Searcher) + Block Builder | BSC, Ethereum     |
+| Arbitrage          | Bundle (Searcher) + Block Builder | BSC, Ethereum     |
+| Token sniping      | Bundle (Searcher)                | BSC, Ethereum     |
+| Bundle simulation  | Call Bundle (Block Builder)      | BSC               |
+
+<Note>
+  The BSC Package subscription ($1,250/month) bundles Public Mempool, Block Stream, Node Stream, Call Bundle, Fast Submit, and Tx Trace into a single plan — a cost-effective starting point for BSC-focused searchers. Private Mempool access ($1,000/month) is available as an add-on for direct orderflow.
+</Note>
+
+## Integration patterns
+
+<Tabs>
+  <Tab title="Private Mempool Stream">
+    Connect to the Private Mempool WebSocket stream to receive RPC orderflow in real time. Each message contains a fully formed pending transaction that arrived via the BlockRazor protected RPC.
+
+    ```javascript
+    const ws = new WebSocket(
+      "wss://stream.blockrazor.io/bsc/<api-key>/private-mempool"
+    );
+
+    ws.on("message", (data) => {
+      const { tx } = JSON.parse(data);
+      // Decode and evaluate for arbitrage / backrun opportunities
+      const opportunity = analyze(tx);
+      if (opportunity) submitBundle(opportunity);
+    });
+    ```
+  </Tab>
+  <Tab title="Bundle — Searcher Bid (BSC)">
+    Submit a bid bundle using `eth_sendMevBundle` in Searcher mode. Your bid competes in the orderflow auction run by the BlockRazor Block Builder.
+
+    ```bash
+    curl -X POST https://rpc.blockrazor.io/bsc/<api-key>/bundle \
+      -H "Content-Type: application/json" \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "eth_sendMevBundle",
+        "params": [{
+          "txs": ["0x<signal_tx_hex>", "0x<searcher_tx_hex>"],
+          "blockNumber": "0x<target_block>",
+          "minTimestamp": 0,
+          "maxTimestamp": 0,
+          "revertingTxHashes": []
+        }],
+        "id": 1
+      }'
+    ```
+  </Tab>
+  <Tab title="Bundle — Searcher Bid (Ethereum)">
+    On Ethereum, use `eth_sendBid` to submit your bundle to the BlockRazor relay for inclusion by a compatible block builder.
+
+    ```bash
+    curl -X POST https://rpc.blockrazor.io/eth/<api-key>/bundle \
+      -H "Content-Type: application/json" \
+      -d '{
+        "jsonrpc": "2.0",
+        "method": "eth_sendBid",
+        "params": [{
+          "txs": ["0x<signal_tx_hex>", "0x<searcher_tx_hex>"],
+          "blockNumber": "0x<target_block>"
+        }],
+        "id": 1
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+  Use the Call Bundle method on BSC to simulate your bundle against the current block state before committing a live bid. This lets you validate profitability and catch revert conditions without spending gas on failed attempts.
+</Tip>
+
+## Recommended services
+
+<CardGroup cols={3}>
+  <Card title="Private Mempool Stream" icon="eye" href="/streams/mempool">
+    Subscribe to BlockRazor RPC orderflow for the earliest view of signal transactions on BSC and Ethereum.
+  </Card>
+  <Card title="Bundle Submission" icon="layer-group" href="/transaction-submission/bundle">
+    Atomic bundle execution in Searcher bid mode for backrunning and arbitrage on BSC and Ethereum.
+  </Card>
+  <Card title="Block Builder" icon="cube" href="/block-builder/overview">
+    Direct submission to the BSC Block Builder with a 37% historical block production rate.
+  </Card>
+</CardGroup>

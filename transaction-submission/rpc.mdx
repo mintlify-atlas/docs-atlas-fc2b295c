@@ -1,0 +1,223 @@
+---
+title: "RPC Mode: MEV-Protected JSON-RPC Submission"
+sidebarTitle: "RPC"
+description: "Send transactions via standard JSON-RPC on BSC, Ethereum, Base, and Monad with built-in MEV protection and real-time rebates on every transaction."
+---
+
+BlockRazor's RPC mode is the most straightforward way to submit transactions to supported networks. It exposes the full suite of standard JSON-RPC methods — including `eth_sendRawTransaction` — while layering in MEV protection and real-time rebate support on top of your existing workflow. Because the interface is 100% JSON-RPC compatible, migrating from a public RPC endpoint requires nothing more than swapping the URL.
+
+## Supported Chains
+
+<CardGroup cols={2}>
+  <Card title="BSC" icon="circle-b">
+    Full JSON-RPC method support including `eth_sendRawTransaction`. No rate limits for new registered users.
+  </Card>
+  <Card title="Ethereum" icon="gem">
+    Full JSON-RPC method support including `eth_sendRawTransaction`. No rate limits for new registered users.
+  </Card>
+  <Card title="Base" icon="layer-group">
+    Supports `eth_sendRawTransaction`. New users are rate-limited to **1 Tx / 5 seconds**.
+  </Card>
+  <Card title="Monad" icon="bolt">
+    Standard JSON-RPC submission with BlockRazor's acceleration network.
+  </Card>
+</CardGroup>
+
+<Note>
+  New registered users on BSC and Ethereum have **no rate limits**. Base is restricted to 1 transaction every 5 seconds for new accounts. [Subscribe to a plan](https://blockrazor.io/#/pricing) to remove limits and unlock higher throughput.
+</Note>
+
+## Endpoint Format
+
+All BlockRazor RPC endpoints follow this pattern:
+
+```
+https://rpc.blockrazor.io/<chain>?auth=<your-token>
+```
+
+You can also pass the token as an `Authorization` header instead of a query parameter. See the examples below for both approaches.
+
+<Tip>
+  Don't have an auth token yet? Visit the [Authentication](/authentication) guide to generate one from the BlockRazor dashboard.
+</Tip>
+
+## Connecting to BlockRazor RPC
+
+<Tabs>
+  <Tab title="BSC">
+    ### cURL
+
+    ```bash
+    curl -X POST https://rpc.blockrazor.io/bsc \
+      -H 'Content-Type: application/json' \
+      -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+      -d '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":["0xSIGNED_TX_HEX"],"id":1}'
+    ```
+
+    ### ethers.js
+
+    ```javascript
+    import { ethers } from "ethers";
+
+    const provider = new ethers.JsonRpcProvider(
+      "https://rpc.blockrazor.io/bsc?auth=YOUR_AUTH_TOKEN"
+    );
+
+    // Sign and send a transaction
+    const wallet = new ethers.Wallet("YOUR_PRIVATE_KEY", provider);
+    const tx = await wallet.sendTransaction({
+      to: "0xRECIPIENT_ADDRESS",
+      value: ethers.parseEther("0.01"),
+    });
+
+    console.log("Transaction hash:", tx.hash);
+    await tx.wait();
+    console.log("Transaction confirmed!");
+    ```
+
+    ### Web3.js
+
+    ```javascript
+    import Web3 from "web3";
+
+    const web3 = new Web3("https://rpc.blockrazor.io/bsc?auth=YOUR_AUTH_TOKEN");
+
+    const signedTx = await web3.eth.accounts.signTransaction(
+      {
+        to: "0xRECIPIENT_ADDRESS",
+        value: web3.utils.toWei("0.01", "ether"),
+        gas: 21000,
+      },
+      "YOUR_PRIVATE_KEY"
+    );
+
+    const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+    console.log("Mined in block:", receipt.blockNumber);
+    ```
+  </Tab>
+
+  <Tab title="Ethereum">
+    ### cURL
+
+    ```bash
+    curl -X POST https://rpc.blockrazor.io/ethereum \
+      -H 'Content-Type: application/json' \
+      -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+      -d '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":["0xSIGNED_TX_HEX"],"id":1}'
+    ```
+
+    ### ethers.js
+
+    ```javascript
+    import { ethers } from "ethers";
+
+    const provider = new ethers.JsonRpcProvider(
+      "https://rpc.blockrazor.io/ethereum?auth=YOUR_AUTH_TOKEN"
+    );
+
+    const wallet = new ethers.Wallet("YOUR_PRIVATE_KEY", provider);
+    const tx = await wallet.sendTransaction({
+      to: "0xRECIPIENT_ADDRESS",
+      value: ethers.parseEther("0.05"),
+    });
+
+    console.log("Transaction hash:", tx.hash);
+    await tx.wait();
+    console.log("Transaction confirmed!");
+    ```
+
+    ### Web3.js
+
+    ```javascript
+    import Web3 from "web3";
+
+    const web3 = new Web3(
+      "https://rpc.blockrazor.io/ethereum?auth=YOUR_AUTH_TOKEN"
+    );
+
+    const signedTx = await web3.eth.accounts.signTransaction(
+      {
+        to: "0xRECIPIENT_ADDRESS",
+        value: web3.utils.toWei("0.05", "ether"),
+        gas: 21000,
+      },
+      "YOUR_PRIVATE_KEY"
+    );
+
+    const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+    console.log("Mined in block:", receipt.blockNumber);
+    ```
+  </Tab>
+
+  <Tab title="Base">
+    ### cURL
+
+    ```bash
+    curl -X POST https://rpc.blockrazor.io/base \
+      -H 'Content-Type: application/json' \
+      -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+      -d '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":["0xSIGNED_TX_HEX"],"id":1}'
+    ```
+
+    ### ethers.js
+
+    ```javascript
+    import { ethers } from "ethers";
+
+    const provider = new ethers.JsonRpcProvider(
+      "https://rpc.blockrazor.io/base?auth=YOUR_AUTH_TOKEN"
+    );
+
+    const wallet = new ethers.Wallet("YOUR_PRIVATE_KEY", provider);
+    const tx = await wallet.sendTransaction({
+      to: "0xRECIPIENT_ADDRESS",
+      value: ethers.parseEther("0.01"),
+    });
+
+    console.log("Transaction hash:", tx.hash);
+    await tx.wait();
+    console.log("Transaction confirmed!");
+    ```
+
+    <Note>
+      Base RPC is limited to **1 transaction every 5 seconds** for new registered users. Subscribe to the Base RPC-Send Tx plan ($1,000/month) to increase your throughput.
+    </Note>
+  </Tab>
+</Tabs>
+
+## Key Methods
+
+<CardGroup cols={2}>
+  <Card title="eth_sendRawTransaction" icon="paper-plane">
+    Submit a signed, serialized transaction. The primary method for all EVM-compatible chains.
+  </Card>
+  <Card title="eth_getTransactionReceipt" icon="receipt">
+    Poll for transaction status and retrieve block inclusion details after submission.
+  </Card>
+  <Card title="eth_blockNumber" icon="cube">
+    Retrieve the latest confirmed block number on the target chain.
+  </Card>
+  <Card title="eth_call" icon="code">
+    Execute a read-only contract call without broadcasting a transaction.
+  </Card>
+</CardGroup>
+
+<Info>
+  BlockRazor's RPC mode supports the full Ethereum JSON-RPC specification. Any method valid on the target chain's native RPC is also valid on the BlockRazor endpoint.
+</Info>
+
+## API Reference
+
+Explore the full method schemas, request/response formats, and chain-specific parameters in the API reference:
+
+<CardGroup cols={3}>
+  <Card title="BSC JSON-RPC" icon="book" href="/api-reference/rpc/bsc-json-rpc">
+    All standard JSON-RPC methods available on BSC.
+  </Card>
+  <Card title="BSC gRPC" icon="book" href="/api-reference/rpc/bsc-grpc">
+    High-performance binary gRPC interface for BSC.
+  </Card>
+  <Card title="Ethereum JSON-RPC" icon="book" href="/api-reference/rpc/ethereum-json-rpc">
+    All standard JSON-RPC methods available on Ethereum.
+  </Card>
+</CardGroup>

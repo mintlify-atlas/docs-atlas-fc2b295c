@@ -1,0 +1,145 @@
+---
+title: "Ethereum JSON-RPC: eth_sendRawTransaction via BlockRazor"
+sidebarTitle: "Ethereum JSON-RPC"
+description: "Submit signed Ethereum transactions through BlockRazor's JSON-RPC endpoint with MEV protection and zero rate limits for newly registered users."
+---
+
+BlockRazor's Ethereum JSON-RPC endpoint provides a fully standard Ethereum-compatible interface for submitting signed transactions to mainnet. By routing your transactions through BlockRazor's infrastructure, you gain built-in MEV protection and access to the same globally distributed network used across all BlockRazor-supported chains. The endpoint is a drop-in replacement for any `eth_sendRawTransaction`-compatible provider — simply swap your existing RPC URL and add the `Authorization` header to start benefiting immediately. New registered users have no rate limits applied to this endpoint.
+
+## Endpoint
+
+```
+POST https://rpc.blockrazor.io/ethereum
+```
+
+All requests must carry your BlockRazor API token in the `Authorization` header.
+
+<Note>
+  Ethereum RPC has **no rate limit** for new registered users. Every transaction submitted through this endpoint automatically benefits from BlockRazor's MEV protection — no additional setup required.
+</Note>
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Your BlockRazor API token formatted as a Bearer token: `Bearer YOUR_AUTH_TOKEN`. Generate your token from the [BlockRazor dashboard](https://blockrazor.io).
+</ParamField>
+
+## Request Body
+
+Requests follow the JSON-RPC 2.0 specification.
+
+<ParamField body="jsonrpc" type="string" required>
+  JSON-RPC protocol version. Must be `"2.0"`.
+</ParamField>
+
+<ParamField body="method" type="string" required>
+  The RPC method to invoke. Set to `"eth_sendRawTransaction"` for transaction submission.
+</ParamField>
+
+<ParamField body="params" type="array" required>
+  A one-element array containing the signed transaction payload.
+
+  <Expandable title="params[0] — signedTransactionData">
+    <ParamField body="signedTransactionData" type="string" required>
+      The RLP-encoded signed Ethereum transaction in `0x`-prefixed hexadecimal. The transaction must be fully signed with a valid ECDSA signature before submission. EIP-1559 (type-2) and legacy transactions are both accepted.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="id" type="integer">
+  An arbitrary integer used to correlate requests with responses. Echoed back in the response unchanged.
+</ParamField>
+
+## Response
+
+<ResponseField name="jsonrpc" type="string">
+  Always `"2.0"`.
+</ResponseField>
+
+<ResponseField name="id" type="integer">
+  Mirrors the `id` from the request.
+</ResponseField>
+
+<ResponseField name="result" type="string">
+  The 32-byte transaction hash as a `0x`-prefixed hex string. This hash uniquely identifies the transaction on Ethereum mainnet and can be used with `eth_getTransactionReceipt` to check confirmation status.
+</ResponseField>
+
+<ResponseField name="error" type="object">
+  Returned only when the RPC call fails.
+
+  <Expandable title="error fields">
+    <ResponseField name="code" type="integer">
+      Standard JSON-RPC error code. Common values: `-32700` (parse error), `-32600` (invalid request), `-32602` (invalid params), `-32000` (server error — e.g., nonce too low, insufficient funds).
+    </ResponseField>
+    <ResponseField name="message" type="string">
+      Human-readable error message describing the failure.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Examples
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://rpc.blockrazor.io/ethereum \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_sendRawTransaction",
+    "params": ["0xSIGNED_TX_HEX"],
+    "id": 1
+  }'
+```
+
+```javascript ethers.js
+import { ethers } from 'ethers';
+
+const provider = new ethers.JsonRpcProvider(
+  'https://rpc.blockrazor.io/ethereum',
+  undefined,
+  { headers: { Authorization: 'Bearer YOUR_AUTH_TOKEN' } }
+);
+
+const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+
+// EIP-1559 transaction
+const tx = await wallet.sendTransaction({
+  to: RECIPIENT,
+  value: ethers.parseEther('0.01'),
+  maxFeePerGas: ethers.parseUnits('20', 'gwei'),
+  maxPriorityFeePerGas: ethers.parseUnits('1', 'gwei'),
+});
+
+console.log('tx hash:', tx.hash);
+
+// Wait for the transaction to be mined
+const receipt = await tx.wait();
+console.log('confirmed in block:', receipt.blockNumber);
+console.log('gas used:', receipt.gasUsed.toString());
+```
+
+</CodeGroup>
+
+## Standard JSON-RPC Methods
+
+The Ethereum endpoint is not limited to transaction submission. All standard Ethereum JSON-RPC methods are available, including:
+
+| Method                         | Description                                          |
+|--------------------------------|------------------------------------------------------|
+| `eth_sendRawTransaction`       | Submit a signed transaction                          |
+| `eth_getTransactionReceipt`    | Retrieve the receipt for a confirmed transaction     |
+| `eth_getBalance`               | Query an address's ETH balance                       |
+| `eth_blockNumber`              | Get the latest block number                          |
+| `eth_call`                     | Execute a read-only contract call                    |
+| `eth_estimateGas`              | Estimate gas required for a transaction              |
+| `eth_getTransactionCount`      | Get the nonce for an address                         |
+
+<Tip>
+  After submitting a transaction, poll `eth_getTransactionReceipt` with the returned hash every few seconds until a non-null result is returned, indicating on-chain inclusion. Use a backoff strategy to avoid excessive polling under high-load conditions.
+</Tip>
+
+<Info>
+  BlockRazor also supports Ethereum Bundle submission (`eth_sendBundle` for project builders and `eth_sendBid` for Searchers), enabling atomic multi-transaction execution and orderflow auction participation. New registered users can access Bundle mode at no cost.
+</Info>

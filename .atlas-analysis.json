@@ -1,28 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "BlockRazor",
+  "projectType": "api-service",
+  "projectName": "BlockRazor",
+  "projectDescription": "A Web3 transaction infrastructure provider offering transaction submission, real-time blockchain data streams, and block building services across Ethereum, BSC, Solana, and Base.",
   "theme": "luma",
-  "colors": {
-    "primary": "#040404",
-    "light": "#7c7c7c",
-    "dark": "#d8d8d8"
-  },
-  "favicon": "https://media.brand.dev/466557f1-6d58-4a22-b9d0-b3ba3427de97.jpg",
-  "logo": {
-    "light": "https://media.brand.dev/95260d60-9803-44a5-8e68-8ff05df9cf2a.svg",
-    "dark": "https://media.brand.dev/95260d60-9803-44a5-8e68-8ff05df9cf2a.svg"
-  },
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/BlockRazorinc/docs_en"
-    }
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/BlockRazorinc/docs_en"
-    }
-  },
+  "primaryColor": "#040404",
+  "lightColor": "#7c7c7c",
+  "darkColor": "#d8d8d8",
   "navigation": {
     "tabs": [
       {
@@ -131,5 +114,37 @@
         ]
       }
     ]
-  }
+  },
+  "keyFeatures": [
+    "Multi-chain transaction submission (RPC, Fast, Gas Sponsor, Bundle modes)",
+    "High-performance Mempool streaming with MEV protection",
+    "Low-latency Block Stream for Solana, BSC, and Base",
+    "Network Fee Stream for real-time gas price data",
+    "BSC Block Builder with 37% historical block production rate",
+    "Node Stream for synchronized full-node world-state data",
+    "Global acceleration network for ultra-low-latency transaction propagation",
+    "Bundle support for backrunning, copy trading, and sniping strategies"
+  ],
+  "publicApiSurface": [
+    "eth_sendRawTransaction (RPC / Fast)",
+    "eth_sendMevBundle (BSC Bundle)",
+    "eth_sendBundle (Ethereum Bundle / Block Builder)",
+    "eth_sendBid (Ethereum Searcher)",
+    "eth_sendPrivateTransaction (Block Builder)",
+    "eth_callBundle (Block Builder Call Bundle)",
+    "eth_traceBundle (Block Builder Trace Bundle)",
+    "Send Transaction / Send Transaction v2 (Solana Fast)",
+    "sui_executeTransactionBlock (Sui Fast)",
+    "GetGasPriceStream (BSC Network Fee Stream)",
+    "GetAllGasPriceStream (BSC Network Fee Stream)",
+    "GetTransactionFee (Solana Network Fee Stream)",
+    "Shred Stream (Solana Block Stream)",
+    "Geyser Stream (Solana Block Stream)",
+    "NewBlocks (BSC Block Stream)",
+    "GetBlockStream / GetFlashBlockStream (Base Block Stream)",
+    "Public Mempool Stream",
+    "Private Mempool Stream (BSC / Ethereum)",
+    "Tx Trace",
+    "Full Node Synchronization / Dedicate Node (Node Stream)"
+  ]
 }

@@ -1,0 +1,344 @@
+---
+title: "Bundle Mode: Atomic Block-Level Transaction Execution"
+sidebarTitle: "Bundle"
+description: "Execute ordered transaction bundles atomically within the same block as a signal transaction on BSC and Ethereum — ideal for backrunning and sniping."
+---
+
+BlockRazor's Bundle mode allows you to submit a group of transactions that must land atomically — all in the same block, in a defined order, immediately following a "signal transaction" of interest. If any transaction in the bundle fails or the ordering cannot be satisfied, the entire bundle is discarded. This guarantee makes Bundle mode the standard tool for sophisticated strategies such as backrunning DEX swaps, copy trading on-chain activity, and token sniping at launch.
+
+## Two Roles in the Bundle Ecosystem
+
+Bundle mode is designed around two distinct participant types, each with different responsibilities and API methods:
+
+<CardGroup cols={2}>
+  <Card title="Project Builder" icon="hammer">
+    Project Builders submit bundles of signed transactions to be included atomically in the next block. They target a specific block and define the full set of transactions to execute in order.
+  </Card>
+  <Card title="Searcher" icon="magnifying-glass">
+    Searchers participate in BlockRazor's orderflow auction by placing bids. They compete to have their transactions included alongside signal transactions by offering the highest bid to the block builder.
+  </Card>
+</CardGroup>
+
+## Supported Chains
+
+<CardGroup cols={2}>
+  <Card title="BSC" icon="circle-b">
+    **Project Builders:** `eth_sendMevBundle`  
+    **Searchers:** `eth_sendMevBundle` (bid variant)  
+    No rate limits for new registered users.
+  </Card>
+  <Card title="Ethereum" icon="gem">
+    **Project Builders:** `eth_sendBundle`  
+    **Searchers:** `eth_sendBid`  
+    No rate limits for new registered users.
+  </Card>
+</CardGroup>
+
+## Submitting a Bundle
+
+<Tabs>
+  <Tab title="BSC">
+    <Tabs>
+      <Tab title="Project Builder">
+        BSC Project Builders use `eth_sendMevBundle` to submit an ordered list of signed transactions targeting a specific block number.
+
+        ### JSON-RPC Request
+
+        ```json
+        {
+          "jsonrpc": "2.0",
+          "method": "eth_sendMevBundle",
+          "params": [{
+            "txs": ["0xSIGNED_TX_1", "0xSIGNED_TX_2"],
+            "blockNumber": "0xE4E1C0"
+          }],
+          "id": 1
+        }
+        ```
+
+        ### cURL
+
+        ```bash
+        curl -X POST https://bundle.blockrazor.io/bsc \
+          -H 'Content-Type: application/json' \
+          -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+          -d '{
+            "jsonrpc": "2.0",
+            "method": "eth_sendMevBundle",
+            "params": [{
+              "txs": ["0xSIGNED_TX_1", "0xSIGNED_TX_2"],
+              "blockNumber": "0xE4E1C0"
+            }],
+            "id": 1
+          }'
+        ```
+
+        ### ethers.js
+
+        ```javascript
+        import { ethers } from "ethers";
+
+        const provider = new ethers.JsonRpcProvider(
+          "https://bundle.blockrazor.io/bsc?auth=YOUR_AUTH_TOKEN"
+        );
+
+        const wallet = new ethers.Wallet("YOUR_PRIVATE_KEY", provider);
+
+        // Get the current block number and target the next block
+        const currentBlock = await provider.getBlockNumber();
+        const targetBlock = currentBlock + 1;
+
+        // Sign your transactions
+        const tx1 = await wallet.signTransaction({
+          to: "0xCONTRACT_ADDRESS",
+          data: "0xCALLDATA_TX1",
+          gasLimit: 200000,
+          maxFeePerGas: ethers.parseUnits("5", "gwei"),
+          maxPriorityFeePerGas: ethers.parseUnits("1", "gwei"),
+          nonce: await wallet.getNonce(),
+          chainId: 56,
+          type: 2,
+        });
+
+        const tx2 = await wallet.signTransaction({
+          to: "0xCONTRACT_ADDRESS",
+          data: "0xCALLDATA_TX2",
+          gasLimit: 150000,
+          maxFeePerGas: ethers.parseUnits("5", "gwei"),
+          maxPriorityFeePerGas: ethers.parseUnits("1", "gwei"),
+          nonce: (await wallet.getNonce()) + 1,
+          chainId: 56,
+          type: 2,
+        });
+
+        // Send the bundle
+        const result = await provider.send("eth_sendMevBundle", [
+          {
+            txs: [tx1, tx2],
+            blockNumber: "0x" + targetBlock.toString(16),
+          },
+        ]);
+
+        console.log("Bundle submitted:", result);
+        ```
+
+        <ParamField body="txs" type="string[]" required>
+          Array of signed, RLP-encoded transactions in hex format. They will be executed in order.
+        </ParamField>
+
+        <ParamField body="blockNumber" type="string" required>
+          The target block number in hexadecimal. The bundle is only valid for this exact block.
+        </ParamField>
+
+        <ParamField body="minTimestamp" type="number">
+          Optional Unix timestamp (seconds). The bundle will not be included before this time.
+        </ParamField>
+
+        <ParamField body="maxTimestamp" type="number">
+          Optional Unix timestamp (seconds). The bundle will not be included after this time.
+        </ParamField>
+      </Tab>
+
+      <Tab title="Searcher">
+        Searchers on BSC use the `eth_sendMevBundle` bid variant to participate in BlockRazor's orderflow auction. A bid specifies the signal transaction to backrun and the maximum amount the searcher is willing to pay.
+
+        ### cURL
+
+        ```bash
+        curl -X POST https://bundle.blockrazor.io/bsc \
+          -H 'Content-Type: application/json' \
+          -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+          -d '{
+            "jsonrpc": "2.0",
+            "method": "eth_sendMevBundle",
+            "params": [{
+              "txs": ["0xSIGNED_SEARCHER_TX"],
+              "blockNumber": "0xE4E1C0",
+              "revertingTxHashes": [],
+              "maxBid": "0x2386F26FC10000"
+            }],
+            "id": 1
+          }'
+        ```
+
+        <Note>
+          Searchers compete in an auction. A higher `maxBid` increases the probability of your bundle being selected by BlockRazor's Block Builder. The actual amount charged is the clearing price, not necessarily the max bid.
+        </Note>
+      </Tab>
+    </Tabs>
+  </Tab>
+
+  <Tab title="Ethereum">
+    <Tabs>
+      <Tab title="Project Builder">
+        Ethereum Project Builders use `eth_sendBundle` following the standard Flashbots bundle specification.
+
+        ### JSON-RPC Request
+
+        ```json
+        {
+          "jsonrpc": "2.0",
+          "method": "eth_sendBundle",
+          "params": [{
+            "txs": ["0xSIGNED_TX_1", "0xSIGNED_TX_2"],
+            "blockNumber": "0x14A5B60"
+          }],
+          "id": 1
+        }
+        ```
+
+        ### cURL
+
+        ```bash
+        curl -X POST https://bundle.blockrazor.io/ethereum \
+          -H 'Content-Type: application/json' \
+          -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+          -d '{
+            "jsonrpc": "2.0",
+            "method": "eth_sendBundle",
+            "params": [{
+              "txs": ["0xSIGNED_TX_1", "0xSIGNED_TX_2"],
+              "blockNumber": "0x14A5B60"
+            }],
+            "id": 1
+          }'
+        ```
+
+        ### ethers.js
+
+        ```javascript
+        import { ethers } from "ethers";
+
+        const provider = new ethers.JsonRpcProvider(
+          "https://bundle.blockrazor.io/ethereum?auth=YOUR_AUTH_TOKEN"
+        );
+
+        const wallet = new ethers.Wallet("YOUR_PRIVATE_KEY", provider);
+
+        const currentBlock = await provider.getBlockNumber();
+        const targetBlock = currentBlock + 1;
+
+        const tx1 = await wallet.signTransaction({
+          to: "0xCONTRACT_ADDRESS",
+          data: "0xCALLDATA_TX1",
+          gasLimit: 250000,
+          maxFeePerGas: ethers.parseUnits("30", "gwei"),
+          maxPriorityFeePerGas: ethers.parseUnits("2", "gwei"),
+          nonce: await wallet.getNonce(),
+          chainId: 1,
+          type: 2,
+        });
+
+        const result = await provider.send("eth_sendBundle", [
+          {
+            txs: [tx1],
+            blockNumber: "0x" + targetBlock.toString(16),
+          },
+        ]);
+
+        console.log("Ethereum bundle submitted:", result);
+        ```
+
+        <ParamField body="txs" type="string[]" required>
+          Array of signed, RLP-encoded transactions in hex format.
+        </ParamField>
+
+        <ParamField body="blockNumber" type="string" required>
+          Target block number in hexadecimal. The bundle is valid only for this block.
+        </ParamField>
+
+        <ParamField body="revertingTxHashes" type="string[]">
+          Optional list of transaction hashes that are allowed to revert without invalidating the entire bundle.
+        </ParamField>
+      </Tab>
+
+      <Tab title="Searcher">
+        Searchers on Ethereum use `eth_sendBid` to place auction bids in BlockRazor's orderflow system.
+
+        ### JSON-RPC Request
+
+        ```json
+        {
+          "jsonrpc": "2.0",
+          "method": "eth_sendBid",
+          "params": [{
+            "txs": ["0xSIGNED_SEARCHER_TX"],
+            "blockNumber": "0x14A5B60",
+            "bid": "0x11C37937E08000"
+          }],
+          "id": 1
+        }
+        ```
+
+        ### cURL
+
+        ```bash
+        curl -X POST https://bundle.blockrazor.io/ethereum \
+          -H 'Content-Type: application/json' \
+          -H 'Authorization: Bearer YOUR_AUTH_TOKEN' \
+          -d '{
+            "jsonrpc": "2.0",
+            "method": "eth_sendBid",
+            "params": [{
+              "txs": ["0xSIGNED_SEARCHER_TX"],
+              "blockNumber": "0x14A5B60",
+              "bid": "0x11C37937E08000"
+            }],
+            "id": 1
+          }'
+        ```
+
+        <ParamField body="txs" type="string[]" required>
+          Array of signed searcher transactions to include in the bundle.
+        </ParamField>
+
+        <ParamField body="blockNumber" type="string" required>
+          Target block number in hexadecimal.
+        </ParamField>
+
+        <ParamField body="bid" type="string" required>
+          The bid amount in wei (hex). This is the maximum the searcher will pay for block inclusion.
+        </ParamField>
+
+        <Note>
+          `eth_sendBid` participates in a sealed-bid auction. Bids are evaluated by BlockRazor's Block Builder to determine which bundles maximize block value. Searchers with winning bids pay the clearing price.
+        </Note>
+      </Tab>
+    </Tabs>
+  </Tab>
+</Tabs>
+
+## Common Use Cases
+
+<CardGroup cols={3}>
+  <Card title="Backrunning" icon="person-running">
+    Submit a transaction immediately after a large DEX swap to capture arbitrage from the resulting price impact.
+  </Card>
+  <Card title="Copy Trading" icon="copy">
+    Mirror the transactions of a target wallet atomically in the same block, executing the same trades at the same prices.
+  </Card>
+  <Card title="Token Sniping" icon="crosshairs">
+    React to a liquidity addition or token launch by bundling your buy transaction to land in the same block as the signal.
+  </Card>
+</CardGroup>
+
+<Info>
+  BlockRazor's Block Builder on BSC has a historical cumulative block production rate of **37%**, ranking first on the BSC chain. High builder share means higher probability of your bundle landing in the target block. View live stats at [Dune Analytics](https://dune.com/bnbchain/bnb-smart-chain-mev-stats).
+</Info>
+
+## API Reference
+
+<CardGroup cols={2}>
+  <Card title="BSC — Project Builder" icon="book" href="/api-reference/bundle/bsc-project-builder">
+    Full `eth_sendMevBundle` schema for BSC Project Builders.
+  </Card>
+  <Card title="BSC — Searcher" icon="book" href="/api-reference/bundle/bsc-searcher">
+    Auction bid parameters for BSC Searchers.
+  </Card>
+  <Card title="Ethereum — Project Builder" icon="book" href="/api-reference/bundle/ethereum-project-builder">
+    Full `eth_sendBundle` schema for Ethereum Project Builders.
+  </Card>
+  <Card title="Ethereum — Searcher" icon="book" href="/api-reference/bundle/ethereum-searcher">
+    `eth_sendBid` parameters for Ethereum Searchers.
+  </Card>
+</CardGroup>

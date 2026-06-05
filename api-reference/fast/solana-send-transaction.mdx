@@ -1,0 +1,254 @@
+---
+title: "Solana Fast Transaction Submission via BlockRazor"
+sidebarTitle: "Solana Send Transaction"
+description: "Send Solana transactions at high speed through BlockRazor's global acceleration network using Send Transaction v1 and v2 with a 3 TPS default for new users."
+---
+
+BlockRazor's Solana Fast mode routes your transactions through a globally distributed acceleration network with highly staked validators, dramatically reducing the time from submission to on-chain inclusion. Unlike the standard Solana RPC, BlockRazor Fast mode leverages prioritized validator connections to minimize slot delays and improve confirmation rates under network congestion. To use Fast mode, your transaction must include a tip instruction transferring a fee to BlockRazor's designated tip address — this incentivizes validators to prioritize your transaction. New registered users receive a default rate of **3 TPS**.
+
+## Endpoint
+
+```
+POST https://fast.blockrazor.io/solana
+```
+
+All requests must include your BlockRazor API token in the `Authorization` header.
+
+## Authentication
+
+<ParamField header="Authorization" type="string" required>
+  Your BlockRazor API token as a Bearer token: `Bearer YOUR_AUTH_TOKEN`. Obtain your token from the [BlockRazor dashboard](https://blockrazor.io).
+</ParamField>
+
+## Methods
+
+BlockRazor's Solana Fast endpoint supports two transaction submission methods.
+
+<Tabs>
+  <Tab title="Send Transaction v1">
+    The standard Fast mode submission method. Build your transaction with a tip instruction included, sign it, and submit using the standard `sendTransaction` RPC call format. The tip is embedded directly in the transaction itself and forwarded to BlockRazor's designated address on-chain.
+
+    **Rate limit for new users:** Default 3 TPS
+  </Tab>
+  <Tab title="Send Transaction v2">
+    An updated submission API with improvements to routing and validator selection. Use v2 for the best possible confirmation speed on the BlockRazor network. The tip requirement and request format are the same as v1.
+
+    **Rate limit for new users:** Default 3 TPS
+  </Tab>
+</Tabs>
+
+## Request Parameters
+
+<ParamField body="method" type="string" required>
+  The Solana RPC method. Use `"sendTransaction"` for both v1 and v2 submission paths.
+</ParamField>
+
+<ParamField body="params" type="array" required>
+  An array where the first element is the base64 or base58-encoded signed transaction, and the second element is an optional configuration object.
+
+  <Expandable title="params details">
+    <ParamField body="transaction" type="string" required>
+      The fully signed, serialized transaction encoded in base64 (recommended) or base58. The transaction must include a tip instruction sending SOL to BlockRazor's designated tip address.
+    </ParamField>
+    <ParamField body="options" type="object">
+      Optional configuration object.
+      <Expandable title="options fields">
+        <ParamField body="encoding" type="string">
+          Encoding format of the transaction. Either `"base64"` (recommended) or `"base58"`.
+        </ParamField>
+        <ParamField body="skipPreflight" type="boolean">
+          When `true`, skips preflight simulation. Recommended for time-sensitive submissions where simulation latency matters.
+        </ParamField>
+        <ParamField body="preflightCommitment" type="string">
+          Commitment level for preflight simulation: `"processed"`, `"confirmed"`, or `"finalized"`.
+        </ParamField>
+      </Expandable>
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Response
+
+<ResponseField name="result" type="string">
+  The transaction signature (base58-encoded string) assigned to the submitted transaction. Use this signature with `getSignatureStatuses` to track confirmation.
+</ResponseField>
+
+<ResponseField name="error" type="object">
+  Present when the submission fails.
+  <Expandable title="error fields">
+    <ResponseField name="code" type="integer">
+      JSON-RPC error code.
+    </ResponseField>
+    <ResponseField name="message" type="string">
+      Description of what went wrong.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Code Examples
+
+<CodeGroup>
+
+```javascript JavaScript (@solana/web3.js)
+import {
+  Connection,
+  Transaction,
+  SystemProgram,
+  PublicKey,
+  Keypair,
+  LAMPORTS_PER_SOL,
+} from '@solana/web3.js';
+
+// Connect to the BlockRazor Solana Fast endpoint
+const connection = new Connection('https://fast.blockrazor.io/solana', {
+  httpHeaders: { Authorization: 'Bearer YOUR_AUTH_TOKEN' },
+});
+
+// Build a transaction that includes a tip instruction to BlockRazor's tip address
+const tipAddress = new PublicKey('BLOCKRAZOR_TIP_ADDRESS');
+const payer = Keypair.fromSecretKey(YOUR_SECRET_KEY);
+
+const transaction = new Transaction().add(
+  // Your primary instruction(s) here
+  SystemProgram.transfer({
+    fromPubkey: payer.publicKey,
+    toPubkey: new PublicKey(RECIPIENT_ADDRESS),
+    lamports: 0.01 * LAMPORTS_PER_SOL,
+  }),
+  // Tip instruction — required for Fast mode
+  SystemProgram.transfer({
+    fromPubkey: payer.publicKey,
+    toPubkey: tipAddress,
+    lamports: TIP_AMOUNT_LAMPORTS,
+  })
+);
+
+const { blockhash } = await connection.getLatestBlockhash();
+transaction.recentBlockhash = blockhash;
+transaction.feePayer = payer.publicKey;
+transaction.sign(payer);
+
+// Submit via BlockRazor Fast mode
+const signature = await connection.sendRawTransaction(transaction.serialize(), {
+  skipPreflight: true,
+});
+
+console.log('Transaction signature:', signature);
+```
+
+```go Go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+
+    "github.com/gagliardetto/solana-go/rpc"
+)
+
+func main() {
+    // Connect to the BlockRazor Solana Fast endpoint
+    // Pass your auth token as a custom header via the RPC client options
+    client := rpc.NewWithHeaders(
+        "https://fast.blockrazor.io/solana",
+        map[string]string{
+            "Authorization": "Bearer YOUR_AUTH_TOKEN",
+        },
+    )
+
+    // Build and sign the transaction with a tip instruction.
+    // The tip instruction must transfer SOL to BlockRazor's
+    // designated tip address within the same transaction.
+    //
+    // Example (pseudocode):
+    //   tx := solana.NewTransaction(
+    //       []solana.Instruction{
+    //           primaryInstruction,
+    //           tipInstruction, // tip to BlockRazor's tip address
+    //       },
+    //       recentBlockhash,
+    //   )
+    //   tx.Sign(signerFunc, signers...)
+
+    // Submit the signed transaction via Fast mode
+    //   sig, err := client.SendTransaction(ctx, tx)
+    //   if err != nil {
+    //       log.Fatalf("SendTransaction failed: %v", err)
+    //   }
+    //   fmt.Println("Transaction signature:", sig)
+
+    ctx := context.Background()
+    _ = ctx
+    _ = client
+
+    fmt.Println("Connect to BlockRazor Solana Fast and submit with tip")
+    log.Println("See comments above for the full send flow")
+}
+```
+
+```rust Rust
+use solana_client::rpc_client::RpcClient;
+use solana_sdk::{
+    commitment_config::CommitmentConfig,
+    signature::{Keypair, Signer},
+    system_instruction,
+    transaction::Transaction,
+    pubkey::Pubkey,
+};
+use std::str::FromStr;
+
+fn main() {
+    // Connect to the BlockRazor Solana Fast endpoint
+    // Note: pass the Authorization header via a custom HTTP client wrapper
+    // when the RPC client library supports custom headers.
+    let client = RpcClient::new_with_commitment(
+        "https://fast.blockrazor.io/solana".to_string(),
+        CommitmentConfig::confirmed(),
+    );
+
+    let payer = Keypair::new(); // load your keypair from file in production
+    let recipient = Pubkey::from_str("RECIPIENT_ADDRESS").unwrap();
+    let tip_address = Pubkey::from_str("BLOCKRAZOR_TIP_ADDRESS").unwrap();
+
+    let recent_blockhash = client.get_latest_blockhash().unwrap();
+
+    // Build the transaction with primary instruction + tip instruction
+    let tx = Transaction::new_signed_with_payer(
+        &[
+            // Primary instruction
+            system_instruction::transfer(&payer.pubkey(), &recipient, 10_000_000),
+            // Tip instruction — required for BlockRazor Fast mode
+            system_instruction::transfer(&payer.pubkey(), &tip_address, TIP_AMOUNT_LAMPORTS),
+        ],
+        Some(&payer.pubkey()),
+        &[&payer],
+        recent_blockhash,
+    );
+
+    // Submit via BlockRazor Fast mode
+    let signature = client.send_transaction(&tx).unwrap();
+    println!("Transaction signature: {}", signature);
+}
+```
+
+</CodeGroup>
+
+<Note>
+  Fast mode requires a tip to be included in the transaction itself, sent to BlockRazor's designated tip address. The tip amount influences validator prioritization — higher tips improve your position in the validator queue during periods of high network congestion.
+</Note>
+
+<Tip>
+  Set `skipPreflight: true` (JavaScript) or the equivalent in your client library when submitting latency-sensitive transactions. Preflight simulation adds round-trip overhead that can increase slot delay under high-frequency conditions.
+</Tip>
+
+## Rate Limits
+
+| User Type        | Rate Limit     |
+|------------------|----------------|
+| New registered   | 3 TPS (default) |
+| Subscribed       | Contact BlockRazor for custom limits |
+
+<Info>
+  Rate limits for Solana Fast mode can be increased through a subscription. Visit the [BlockRazor pricing page](https://blockrazor.io/#/pricing) to review available plans.
+</Info>

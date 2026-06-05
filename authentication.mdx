@@ -1,0 +1,75 @@
+---
+title: "Authentication: Registering and Using Your API Token"
+sidebarTitle: "Authentication"
+description: "Learn how to register a BlockRazor account, activate it via email, retrieve your auth token, and pass it correctly in API requests."
+---
+
+Some BlockRazor services require an auth token to be included with each request. This token identifies your account, enforces your subscription entitlements, and enables access to premium endpoints. The process of obtaining your token is straightforward: register on the BlockRazor website, activate your account through a confirmation email, then copy the token from your account dashboard.
+
+## Registration and Token Setup
+
+<Steps>
+  <Step title="Visit the BlockRazor Website">
+    Go to [https://www.blockrazor.io](https://www.blockrazor.io) and click **Register** in the upper-right corner of the page. The system will redirect you to the registration page.
+  </Step>
+  <Step title="Create Your Account">
+    On the registration page, enter your **email address** and choose a **password**, then click **Register**. BlockRazor will immediately send an account activation email to the address you provided.
+  </Step>
+  <Step title="Activate Your Account">
+    Open your inbox and find the activation email from BlockRazor. Click the **account activation link** inside the email. This confirms your address and activates your account.
+  </Step>
+  <Step title="Retrieve Your Auth Token">
+    After activation, log in to your account and navigate to your account information page. Locate your **auth token** and copy it. Keep this token secure — treat it like a password and do not share it publicly.
+  </Step>
+</Steps>
+
+<Warning>
+  If you do not receive the activation email within a few minutes, check your spam or junk folder. The activation link is required to complete registration — your account cannot be used until it is activated.
+</Warning>
+
+## Using Your Auth Token in API Requests
+
+Once you have your auth token, include it in every API request to authenticated endpoints. BlockRazor follows the standard HTTP Bearer token convention.
+
+### HTTP Header (Recommended)
+
+Pass the token as a Bearer token in the `Authorization` header:
+
+```http
+Authorization: Bearer <your-auth-token>
+```
+
+**Example using curl:**
+
+```bash
+curl -X POST https://api.blockrazor.io/your-endpoint \
+  -H "Authorization: Bearer <your-auth-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":["0x..."],"id":1}'
+```
+
+### Query Parameter (Alternative)
+
+Some endpoints also accept the token as a URL query parameter named `auth`:
+
+```
+https://api.blockrazor.io/your-endpoint?auth=<your-auth-token>
+```
+
+**Example using curl:**
+
+```bash
+curl -X POST "https://api.blockrazor.io/your-endpoint?auth=<your-auth-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_sendRawTransaction","params":["0x..."],"id":1}'
+```
+
+<Note>
+  Check the documentation page for each specific service to confirm the exact authentication method and parameter name it expects. The `Authorization` header is the most broadly supported approach.
+</Note>
+
+## New Registered Users
+
+<Tip>
+  New registered users get immediate access to a free tier covering RPC, Fast, Bundle, and Block Builder modes across Solana, BSC, Ethereum, and Base — no subscription required. See the [Pricing](/pricing) page for full details on free-tier limits and available methods.
+</Tip>
