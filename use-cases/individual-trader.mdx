@@ -32,7 +32,7 @@ Every new BlockRazor account unlocks multi-mode transaction submission across So
     When you submit a transaction through a standard public RPC, it sits in the public mempool where searchers can see it and front-run or sandwich it before it confirms. BlockRazor's RPC mode keeps your transaction private until block inclusion, preventing this class of value extraction entirely. For high-value swaps and time-sensitive trades, this protection can be worth more than the cost of any subscription.
   </Step>
   <Step title="Faster confirmations with the global acceleration network">
-    Fast mode connects to BlockRazor's distributed global relay and routes your transaction directly to highly staked validators. On Solana you get up to 3 TPS by default; on BSC and Base up to 10 TPS. For new registered users who want Fast mode without including a tip in the transaction, `SendTx` is available at 10 transactions per 5 seconds and 10 transactions per day — enough for active individual trading.
+    Fast mode connects to BlockRazor's distributed global relay and routes your transaction directly to highly staked validators. On Solana you get up to 3 TPS by default; on BSC and Base up to 10 TPS — more than enough for active individual trading without any subscription required.
   </Step>
   <Step title="Gas Sponsor — trade before you hold gas">
     Gas Sponsor lets a platform or dApp cover your gas fee, meaning you can execute your first transaction on a new chain without needing to bridge native tokens first. As an individual trader, look for dApps and wallets that have integrated BlockRazor Gas Sponsor to enjoy this benefit automatically.
@@ -46,11 +46,9 @@ Every new BlockRazor account unlocks multi-mode transaction submission across So
 
 | Mode         | Chains                      | Default Limit                          |
 |--------------|-----------------------------|----------------------------------------|
-| RPC          | BSC, Ethereum               | Unlimited                              |
-| RPC          | Base                        | 1 transaction / 5 seconds              |
+| RPC          | BSC, Ethereum, Base         | Standard rate limits apply             |
 | Fast         | Solana                      | 3 TPS                                  |
 | Fast         | BSC, Base                   | 10 TPS                                 |
-| Fast (SendTx)| BSC                         | 10 txs / 5 seconds · 10 txs / day     |
 | Bundle       | BSC, Ethereum               | Unlimited                              |
 | Block Builder| BSC                         | Unlimited (private txs and bundles)    |
 

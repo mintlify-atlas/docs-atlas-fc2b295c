@@ -1,7 +1,7 @@
 ---
 title: "Sui Fast Mode: sui_executeTransactionBlock via BlockRazor"
-sidebarTitle: "Sui Execute Tx Block"
-description: "Execute Sui transaction blocks at high speed through BlockRazor's Fast mode endpoint using the sui_executeTransactionBlock method with TypeScript and Go examples."
+sidebarTitle: "Sui Execute Tx"
+description: "Execute Sui transaction blocks at high speed through BlockRazor's Fast endpoint using sui_executeTransactionBlock, with TypeScript and Go examples."
 ---
 
 BlockRazor's Sui Fast mode provides a low-latency path for executing Sui transaction blocks by routing your signed payloads through a globally distributed acceleration network with direct validator connections. The `sui_executeTransactionBlock` method accepts a serialized transaction block and its corresponding signature, then submits the pair to the network with priority routing for faster finality. This is the recommended method for wallets, DEXs, and trading bots on Sui that require consistent, sub-second transaction execution under real-world network conditions.

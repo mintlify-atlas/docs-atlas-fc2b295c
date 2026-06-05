@@ -1,7 +1,7 @@
 ---
 title: "BSC Bundle API for Project Builders — eth_sendMevBundle"
 sidebarTitle: "BSC Project Builder"
-description: "Submit MEV bundles on BSC as a project builder to execute transactions atomically within the same block as a signal transaction."
+description: "Submit MEV bundles on BSC as a project builder using eth_sendMevBundle to execute transactions atomically alongside a signal transaction."
 ---
 
 Project builders on BSC can use the `eth_sendMevBundle` method to submit a group of signed transactions that execute atomically within the same block as a designated signal transaction. This is the foundational tool for use cases such as backrunning, copy trading, and token sniping—where precise co-block execution with a known on-chain event is required. Bundles are routed through BlockRazor's high-performance infrastructure and delivered directly to block builders for inclusion.
@@ -12,7 +12,7 @@ Project builders on BSC can use the `eth_sendMevBundle` method to submit a group
 
 ## Endpoint
 
-```
+```text
 POST https://bundle.blockrazor.io/bsc
 ```
 

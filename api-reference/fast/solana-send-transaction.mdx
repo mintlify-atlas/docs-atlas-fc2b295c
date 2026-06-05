@@ -1,7 +1,7 @@
 ---
-title: "Solana Fast Transaction Submission via BlockRazor"
+title: "Solana: Fast Send Transaction v1 & v2 via BlockRazor"
 sidebarTitle: "Solana Send Transaction"
-description: "Send Solana transactions at high speed through BlockRazor's global acceleration network using Send Transaction v1 and v2 with a 3 TPS default for new users."
+description: "Send Solana transactions at high speed through BlockRazor's acceleration network using Send Transaction v1 and v2. New users get a default rate of 3 TPS."
 ---
 
 BlockRazor's Solana Fast mode routes your transactions through a globally distributed acceleration network with highly staked validators, dramatically reducing the time from submission to on-chain inclusion. Unlike the standard Solana RPC, BlockRazor Fast mode leverages prioritized validator connections to minimize slot delays and improve confirmation rates under network congestion. To use Fast mode, your transaction must include a tip instruction transferring a fee to BlockRazor's designated tip address — this incentivizes validators to prioritize your transaction. New registered users receive a default rate of **3 TPS**.
@@ -39,8 +39,16 @@ BlockRazor's Solana Fast endpoint supports two transaction submission methods.
 
 ## Request Parameters
 
+<ParamField body="jsonrpc" type="string" required>
+  JSON-RPC version string. Must be `"2.0"`.
+</ParamField>
+
 <ParamField body="method" type="string" required>
   The Solana RPC method. Use `"sendTransaction"` for both v1 and v2 submission paths.
+</ParamField>
+
+<ParamField body="id" type="integer">
+  Client-defined request identifier echoed back in the response. Defaults to `1` if omitted.
 </ParamField>
 
 <ParamField body="params" type="array" required>

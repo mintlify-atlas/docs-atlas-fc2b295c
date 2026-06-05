@@ -40,7 +40,7 @@ BlockRazor's Fast mode is purpose-built for applications where latency is the di
     `ExecuteTransactionBlock`. Contact BlockRazor for limit details.
   </Card>
   <Card title="Monad" icon="bolt">
-    Standard transaction submission via the Fast acceleration network.
+    Standard transaction submission via the Fast acceleration network. **Coming soon.**
   </Card>
 </CardGroup>
 
@@ -169,7 +169,7 @@ BlockRazor's Fast mode is purpose-built for applications where latency is the di
     transaction.add(
       SystemProgram.transfer({
         fromPubkey: payer.publicKey,
-        toPubkey: blockrazerTipAccount,
+        toPubkey: blockrazorTipAccount,
         lamports: 1000, // tip in lamports
       })
     );

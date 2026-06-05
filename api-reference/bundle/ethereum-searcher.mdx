@@ -1,7 +1,7 @@
 ---
 title: "Ethereum Bundle Orderflow Auction API for Searchers"
 sidebarTitle: "Ethereum Searcher"
-description: "Submit competitive bid bundles on Ethereum using eth_sendBid to win backrun slots in BlockRazor's MEV orderflow auction system."
+description: "Submit competitive bid bundles on Ethereum using eth_sendBid to win exclusive backrun slots in BlockRazor's MEV orderflow auction system."
 ---
 
 MEV searchers on Ethereum use the `eth_sendBid` method to participate in BlockRazor's orderflow auction by attaching a `bid` denominated in wei to a bundle targeting a specific signal transaction. The searcher workflow is built around speed and precision: monitor the mempool for profitable signal transactions, construct a backrun bundle that captures the resulting opportunity, calculate a bid that remains below the expected profit, and submit before the auction closes. The highest bidder for each signal transaction wins exclusive placement immediately after it in the target block.
@@ -12,7 +12,7 @@ MEV searchers on Ethereum use the `eth_sendBid` method to participate in BlockRa
 
 ## Endpoint
 
-```
+```text
 POST https://bundle.blockrazor.io/ethereum
 ```
 

@@ -8,7 +8,7 @@ BlockRazor Block Stream delivers confirmed block data to your application with t
 
 <Tabs>
   <Tab title="Solana">
-    Solana's high-throughput architecture requires specialized streaming approaches. BlockRazor offers two distinct Solana block stream products: **Shred Stream** for the lowest possible raw data latency, and **Geyser Stream** for structured on-chain data across accounts, slots, blocks, and transactions.
+    Solana's high-throughput architecture requires specialized streaming approaches. BlockRazor offers three Solana block stream products: **Shred Stream** for the lowest possible raw data latency, **Geyser Stream** for structured on-chain data across accounts, slots, blocks, and transactions, and the **Sandwich Detector** for identifying sandwich attacks in confirmed Solana blocks.
 
     ### Shred Stream
 
@@ -84,6 +84,19 @@ BlockRazor Block Stream delivers confirmed block data to your application with t
     }
     ```
 
+    ### Sandwich Detector
+
+    The Solana Sandwich Detector scans each confirmed Solana block in real time to identify sandwich attack patterns — transactions where a bot front-runs and back-runs a victim trade within the same block. Use this feed to audit trade execution quality, build sandwich-awareness into your routing logic, or monitor competitive MEV activity on-chain.
+
+    <CardGroup cols={2}>
+      <Card title="Detection Scope" icon="shield-halved">
+        Sandwich attack patterns identified in confirmed Solana blocks
+      </Card>
+      <Card title="Availability" icon="tag">
+        Included with Solana Block Stream access
+      </Card>
+    </CardGroup>
+
     For full API details, see the [Solana Block Stream API Reference](/api-reference/streams/block-stream-solana).
   </Tab>
 
@@ -154,7 +167,7 @@ BlockRazor Block Stream delivers confirmed block data to your application with t
   </Tab>
 
   <Tab title="Base">
-    BlockRazor provides two block stream options for the Base network: the standard **GetBlockStream** for confirmed block data, and **GetFlashBlockStream** for pre-confirmation flash block data at an even lower latency.
+    BlockRazor provides two block stream options for the Base network — the standard **GetBlockStream** for confirmed block data, and **GetFlashBlockStream** for pre-confirmation data sourced directly from the Base sequencer — plus the **ParseFlashBlock** helper for decoding FlashBlock payloads.
 
     ### GetBlockStream
 
@@ -171,7 +184,7 @@ BlockRazor Block Stream delivers confirmed block data to your application with t
 
     ### GetFlashBlockStream
 
-    GetFlashBlockStream provides access to Base's FlashBlock data — partial block information made available before full block confirmation. This stream is designed for latency-critical applications that need to act on block data as early as physically possible.
+    GetFlashBlockStream provides access to Base's FlashBlock data — pre-confirmation block information sourced directly from the Base sequencer before the full block is finalized. This stream is designed for latency-critical applications that need to act on block data as early as physically possible.
 
     <CardGroup cols={2}>
       <Card title="Stream Name" icon="bolt">
@@ -185,6 +198,14 @@ BlockRazor Block Stream delivers confirmed block data to your application with t
     <Tip>
       Use GetFlashBlockStream when your strategy depends on reacting to Base block data before competing participants. The lower price combined with earlier data delivery makes it the preferred option for most latency-sensitive Base integrations.
     </Tip>
+
+    ### ParseFlashBlock
+
+    ParseFlashBlock is a helper utility for parsing the raw FlashBlock payload returned by GetFlashBlockStream. It decodes the sequencer's pre-confirmation data into a structured format your application can act on directly, without needing to implement custom deserialization logic.
+
+    <Note>
+      Use ParseFlashBlock alongside GetFlashBlockStream to ensure your application correctly interprets FlashBlock data structures emitted by the Base sequencer.
+    </Note>
 
     For full API details, see the [Base Block Stream API Reference](/api-reference/streams/block-stream-base).
   </Tab>
@@ -213,6 +234,8 @@ BlockRazor Block Stream delivers confirmed block data to your application with t
 |---|---|---|---|
 | Solana | Shred Stream | Raw shred fragments | $500/stream/month |
 | Solana | Geyser Stream | Accounts, slots, blocks, txs | From $250/month (5 TiB) |
+| Solana | Sandwich Detector | Sandwich attack patterns in confirmed blocks | Included with Solana Block Stream |
 | BSC | NewBlocks | Full confirmed blocks | $500/stream/month |
 | Base | GetBlockStream | Confirmed block data | $300/stream/month |
-| Base | GetFlashBlockStream | Pre-confirmation flash blocks | $250/stream/month |
+| Base | GetFlashBlockStream | Pre-confirmation data from Base sequencer | $250/stream/month |
+| Base | ParseFlashBlock | FlashBlock payload parsing helper | Included with GetFlashBlockStream |

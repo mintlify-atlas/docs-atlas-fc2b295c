@@ -7,12 +7,12 @@ description: "Retrieve detailed per-transaction execution traces for a submitted
 The `eth_traceBundle` method returns a detailed execution trace for a bundle that was previously submitted to BlockRazor's BSC Block Builder via `eth_sendBundle`. Using the `bundleHash` returned at submission time, you can inspect exactly how each transaction in the bundle executed: which opcodes ran, how much gas was consumed at each step, which events were emitted, and whether any transaction encountered a revert and why. This level of visibility is essential for debugging failed bundles, verifying profitability, and auditing execution paths post-inclusion.
 
 <Info>
-  Bundle tracing is available as the **Bundle Tracing & Explorer** service on BSC at **$1,500/month**, and is also included in the BSC Package at **$1,250/month**. See [Pricing](https://blockrazor.io/#/pricing) for full details.
+  Bundle tracing via `eth_traceBundle` is available to registered users on BSC. See [Pricing](https://blockrazor.io/#/pricing) for full subscription tier details.
 </Info>
 
 ## Endpoint
 
-```
+```text
 POST https://builder.blockrazor.io/bsc
 ```
 

@@ -7,12 +7,12 @@ description: "Dry-run a transaction bundle against BSC chain state using eth_cal
 The `eth_callBundle` method simulates the execution of a bundle against a specified BSC chain state without submitting any transactions on-chain. This gives you a gas-free, risk-free way to verify that your bundle will execute as intended before committing to `eth_sendBundle`. The response provides per-transaction results including gas consumed, return values, and revert reasons, enabling your system to catch errors and optimize gas parameters before they cost real funds.
 
 <Info>
-  Bundle simulation via `eth_callBundle` is included in the BSC Package subscription at **$1,250/month**. It is also available as part of the Call Bundle service tier. See [Pricing](https://blockrazor.io/#/pricing) for details.
+  Bundle simulation via `eth_callBundle` is available to registered users on BSC. See [Pricing](https://blockrazor.io/#/pricing) for subscription tier details.
 </Info>
 
 ## Endpoint
 
-```
+```text
 POST https://builder.blockrazor.io/bsc
 ```
 

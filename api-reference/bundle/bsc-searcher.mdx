@@ -1,7 +1,7 @@
 ---
-title: "BSC Bundle Orderflow Auction API for Searchers"
+title: "BSC Orderflow Auction Bundle API for MEV Searchers"
 sidebarTitle: "BSC Searcher"
-description: "Submit competitive bids in BSC orderflow auctions using eth_sendMevBundle to win the right to backrun a signal transaction."
+description: "Submit competitive bids in BSC orderflow auctions via eth_sendMevBundle to win the exclusive right to backrun a signal transaction."
 ---
 
 MEV searchers on BSC participate in an orderflow auction by submitting bundles via `eth_sendMevBundle` with an attached `bid`. The bid is a monetary offer denominated in wei—the searcher who submits the highest bid for a given signal transaction wins the exclusive right to have their bundle placed immediately after it in the target block. This auction model lets project builders monetize their orderflow while giving searchers a transparent, competitive mechanism to capture backrunning opportunities.
@@ -12,7 +12,7 @@ MEV searchers on BSC participate in an orderflow auction by submitting bundles v
 
 ## Endpoint
 
-```
+```text
 POST https://bundle.blockrazor.io/bsc
 ```
 

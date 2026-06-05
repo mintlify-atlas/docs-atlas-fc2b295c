@@ -57,6 +57,25 @@ Authentication is performed via gRPC metadata rather than HTTP headers. Attach t
   gRPC metadata key carrying your BlockRazor API token. Value format: `Bearer YOUR_AUTH_TOKEN`.
 </ParamField>
 
+## Response
+
+<ResponseField name="tx_hash" type="string">
+  The 32-byte transaction hash (`0x`-prefixed hex string) for the submitted transaction. Use this hash with `eth_getTransactionReceipt` (via the JSON-RPC endpoint) to poll for on-chain confirmation.
+</ResponseField>
+
+<ResponseField name="error" type="object">
+  Present when the RPC call fails. Returned as a gRPC status error on the client side; inspect the status code and message for details.
+
+  <Expandable title="error fields">
+    <ResponseField name="code" type="integer">
+      gRPC status code indicating the failure category (e.g., `INVALID_ARGUMENT`, `UNAUTHENTICATED`).
+    </ResponseField>
+    <ResponseField name="message" type="string">
+      Human-readable description of the error returned by the server.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
 ## Example: Connecting and Submitting a Transaction (Go)
 
 The following example demonstrates how to establish a TLS-secured gRPC connection to BlockRazor and attach authentication metadata to the outgoing context. Use the generated protobuf client for your specific service to call `SendRawTransaction` or equivalent methods.

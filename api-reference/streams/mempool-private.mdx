@@ -1,7 +1,7 @@
 ---
 title: "Private Mempool Stream — BlockRazor RPC Orderflow"
 sidebarTitle: "Private Mempool"
-description: "Access BlockRazor's private RPC orderflow stream on BSC and Ethereum to see transactions before they enter the public mempool."
+description: "Access BlockRazor's private RPC orderflow on BSC and Ethereum to receive pending transactions before they reach the public mempool."
 ---
 
 The Private Mempool stream gives you exclusive access to transactions submitted through BlockRazor's RPC endpoints that have not yet been broadcast to the public peer-to-peer network. Because these transactions are routed privately through BlockRazor's infrastructure, they arrive at your listener before they become visible in the public mempool — providing a meaningful latency and information advantage for searchers, MEV bots, and quantitative trading systems. The stream is available on both BSC and Ethereum at **$1,000 per month**.
@@ -65,7 +65,7 @@ Connect and process private mempool events using the WebSocket client for your p
       console.log(
         'Private pending tx:', tx.hash,
         'from:', tx.from,
-        'private orderflow:', tx.privateOrderflow
+        'to:', tx.to
       );
     });
 
@@ -88,7 +88,7 @@ Connect and process private mempool events using the WebSocket client for your p
       console.log(
         'Private pending tx:', tx.hash,
         'from:', tx.from,
-        'private orderflow:', tx.privateOrderflow
+        'to:', tx.to
       );
     });
 
@@ -99,12 +99,12 @@ Connect and process private mempool events using the WebSocket client for your p
 </Tabs>
 
 <Tip>
-  Filter on `tx.privateOrderflow === true` to isolate transactions that have never appeared in the public mempool. These represent the highest-signal events for copy-trading and backrunning strategies.
+  Monitor `tx.gasPrice` to quickly filter for high-priority transactions. Private mempool transactions are pre-public and represent the highest-signal events for copy-trading and backrunning strategies.
 </Tip>
 
 ## Response Fields
 
-Each message is a JSON object describing a single private pending transaction. Fields mirror the public mempool format with one additional indicator.
+Each message is a JSON object describing a single private pending transaction with the same field schema as the public mempool stream.
 
 <ResponseField name="hash" type="string" required>
   The unique 32-byte hex transaction hash (e.g. `0xabc123...`).
@@ -134,10 +134,6 @@ Each message is a JSON object describing a single private pending transaction. F
   ABI-encoded calldata. `"0x"` for plain transfers; contains function selector and arguments for contract interactions.
 </ResponseField>
 
-<ResponseField name="privateOrderflow" type="boolean" required>
-  `true` when this transaction was submitted exclusively through BlockRazor's private RPC and has not yet been propagated to the public mempool. `false` if the transaction has since been broadcast publicly.
-</ResponseField>
-
 ## Example Message
 
 ```json
@@ -148,8 +144,7 @@ Each message is a JSON object describing a single private pending transaction. F
   "value": "0x0",
   "gas": "0x55730",
   "gasPrice": "0x1DCD65000",
-  "data": "0x7ff36ab5000000000000000000000000000000000000000000000000002386f26fc10000",
-  "privateOrderflow": true
+  "data": "0x7ff36ab5000000000000000000000000000000000000000000000000002386f26fc10000"
 }
 ```
 
